@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+html, body { background: #05060a; }
+body { font-feature-settings: 'cv11', 'ss01'; overflow-x: hidden; }
+::selection { background: rgba(255, 138, 31, .35); color: #fff; }
+
+* { scrollbar-width: thin; scrollbar-color: #262c3f transparent; }
+
+@layer components {
+  .glass {
+    @apply bg-white/[0.03] border border-white/[0.07] backdrop-blur-xl shadow-card;
+  }
+  .card { @apply glass rounded-2xl; }
+  .label { @apply text-[11px] uppercase tracking-[0.14em] text-zinc-500 font-medium; }
+  .input {
+    @apply w-full rounded-xl bg-ink-900/80 border border-white/10 px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600
+      outline-none transition focus:border-amber-500/60 focus:ring-4 focus:ring-amber-500/10;
+  }
+  .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-br from-white via-amber-200 to-amber-500; }
+  .tnum { font-variant-numeric: tabular-nums; }
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+.noise::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .07; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.mask-fade-b { mask-image: linear-gradient(to bottom, #000 60%, transparent); }
+.mask-radial { mask-image: radial-gradient(ellipse at center, #000 30%, transparent 75%); }
+
+/* Recharts Feinschliff */
+.recharts-cartesian-grid line { stroke: rgba(255,255,255,.05); }
+.recharts-text { fill: #71717a; font-size: 11px; }
+.recharts-tooltip-cursor { fill: rgba(255,255,255,.03); }
+
+@media print {
+  body { background: #fff !important; color: #111 !important; }
+  .no-print { display: none !important; }
+  .print-area { box-shadow: none !important; border: 0 !important; background: #fff !important; color: #111 !important; }
+  .print-area * { color: #111 !important; border-color: #ddd !important; }
+}
