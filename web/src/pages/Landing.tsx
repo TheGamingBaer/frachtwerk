@@ -6,6 +6,10 @@ import { Button, Counter, Avatar, CompanyBadge, cx } from '../components/ui';
 import { useApi } from '../lib/auth';
 import { compact } from '../lib/format';
 import { AreaTrend } from '../components/charts';
+import { LiveMap } from '../components/LiveMap';
+import { useLiveDrivers } from '../lib/live';
+import { ago } from '../lib/format';
+import { DiscordIcon } from '../components/icons';
 
 const demoTrend = Array.from({ length: 30 }, (_, i) => ({ label: `${i + 1}.`, km: Math.round(2600 + Math.sin(i / 3) * 900 + i * 70 + (i % 4) * 300), payout: Math.round(1800 + Math.cos(i / 4) * 600 + i * 50) }));
 
@@ -96,7 +100,7 @@ function HeroMockup() {
 const features = [
   { icon: Zap, title: 'Automatische Erfassung', text: 'Client starten, losfahren. Jede Tour landet mit Kilometern, Verbrauch, Schaden und Erlös automatisch im Fahrtenbuch.', span: 'md:col-span-2', accent: 'amber' },
   { icon: Receipt, title: 'Lohnlauf mit einem Klick', text: 'Monat wählen, prüfen, abrechnen. Jeder Fahrer bekommt seinen eigenen Lohnzettel mit allen Positionen.', accent: 'cyan' },
-  { icon: Radio, title: 'Live-Tracking', text: 'Sieh, wer gerade fährt: Route, Fracht, Tempo, Restkilometer und Tankfüllung.', accent: 'emerald' },
+  { icon: Radio, title: 'Live-Map', text: 'Europa- und USA-Karte in Spielprojektion: Spuren, Ziele, Tempo, Tank – global oder nur deine Spedition.', accent: 'emerald' },
   { icon: Trophy, title: 'Level, Erfolge & Ranglisten', text: 'XP für jeden Kilometer, Boni für sauberes Fahren. Wöchentliche, monatliche und ewige Bestenlisten – für Fahrer und Firmen.', span: 'md:col-span-2', accent: 'violet' },
   { icon: Users2, title: 'Rollen & Bewerbungen', text: 'Inhaber, Admin, Disponent, Fahrer. Offen, per Bewerbung oder per Einladungscode.', span: 'md:col-span-2', accent: 'amber' },
   { icon: Wallet, title: 'Firmenfinanzen', text: 'Kontostand, Einnahmen, Ausgaben, Kraftstoff, Prämien – alles als Buchungsjournal mit Diagrammen.', accent: 'cyan' },
@@ -109,7 +113,8 @@ const compare = [
   ['Komplett kostenlos – ohne Premium-Stufen', true, false],
   ['Frei einstellbare Lohnformel (km, Anteil, Boni, Abzüge)', true, false],
   ['Lohnzettel pro Fahrer zum Drucken / PDF', true, false],
-  ['Live-Tracking der eigenen Fahrer', true, true],
+  ['Live-Map mit Speditionsansicht & Echtzeit-Push', true, true],
+  ['Login mit Discord', true, true],
   ['Firmenkonto mit Buchungsjournal', true, false],
   ['Level, XP & Erfolge', true, false],
   ['Selbst hostbar, deine Daten gehören dir', true, false],
@@ -125,8 +130,63 @@ const faqs = [
   ['Kann ich auch ohne Firma fahren?', 'Klar. Als Freifahrer sammelst du XP, Erfolge und Statistiken – und kannst später jederzeit einer Firma beitreten.'],
 ];
 
+
+function Ticker() {
+  const { data } = useApi<any[]>('/public/activity');
+  if (!data?.length) return null;
+  const row = [...data, ...data];
+  return (
+    <div className="relative overflow-hidden border-b border-white/[0.05] py-4 [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
+      <div className="flex w-max animate-[marquee_60s_linear_infinite] gap-3 hover:[animation-play-state:paused]">
+        {row.map((j, i) => (
+          <div key={i} className="flex items-center gap-2.5 whitespace-nowrap rounded-full border border-white/[0.06] bg-white/[0.02] py-1.5 pl-1.5 pr-4 text-sm">
+            <Avatar name={j.display_name} hue={j.avatar_hue} src={j.avatar_url} size={24} />
+            <span className="text-zinc-300">{j.display_name}</span>
+            {j.company_tag && <span className="font-mono text-[10px]" style={{ color: `hsl(${j.company_hue} 90% 70%)` }}>{j.company_tag}</span>}
+            <span className="text-zinc-600">·</span>
+            <span className="text-zinc-400">{j.cargo} nach <span className="text-white">{j.dest_city}</span></span>
+            <span className="font-mono text-xs text-zinc-500">{Math.round(j.driven_km)} km · {ago(j.finished_at)}</span>
+          </div>
+        ))}
+      </div>
+      <style>{`@keyframes marquee { from { transform: translateX(0) } to { transform: translateX(-50%) } }`}</style>
+    </div>
+  );
+}
+
+function LiveSection() {
+  const { store, version, drivers, status } = useLiveDrivers({ publicMode: true });
+  const n = drivers.filter((d) => d.game === 'ets2').length;
+  return (
+    <section id="live" className="relative scroll-mt-24 py-28">
+      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[.85fr_1.15fr]">
+        <div>
+          <SectionTitle left eyebrow="Live-Map" title={<>Deine Flotte.<br />In Echtzeit.</>} text="Jeder Truck mit gestartetem Client erscheint sofort auf der Karte – mit Spur, Fracht, Ziel und Tempo. Gezeichnet in der Projektion des Spiels, damit Europa genau so aussieht wie in ETS2." />
+          <ul className="mt-8 space-y-3">
+            {['Speditionsansicht: nur deine Fahrer – inklusive Offline-Liste', 'Globale Karte mit allen öffentlichen Fahrern', 'Verfolgen-Modus, Routen zum Ziel & Lieferungs-Ticker', 'Echtzeit per Server-Push – kein Neuladen'].map((t) => (
+              <li key={t} className="flex items-center gap-3 text-sm text-zinc-300"><span className="grid h-5 w-5 place-items-center rounded-full bg-cyan-500/15"><Check className="h-3 w-3 text-cyan-300" /></span>{t}</li>
+            ))}
+          </ul>
+          <Button to="/map" variant="outline" className="mt-8">Live-Map im Vollbild <ArrowRight className="h-4 w-4" /></Button>
+        </div>
+        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }} className="relative">
+          <div className="absolute -inset-6 rounded-[40px] bg-gradient-to-br from-cyan-500/15 via-transparent to-amber-500/15 blur-3xl" />
+          <div className="relative h-[460px] overflow-hidden rounded-3xl border border-white/10 shadow-[0_40px_120px_-20px_rgba(0,0,0,.8)]">
+            <LiveMap game="ets2" store={store} version={version} compact interactive />
+            <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2 rounded-xl border border-white/10 bg-[#0a0e18]/80 px-3 py-2 text-xs text-zinc-300 backdrop-blur-xl">
+              <span className="relative flex h-2 w-2"><span className="absolute inset-0 animate-ping rounded-full bg-emerald-400" /><span className="relative h-2 w-2 rounded-full bg-emerald-400" /></span>
+              {status === 'connecting' ? 'Verbinde…' : `${n} ${n === 1 ? 'Fahrer' : 'Fahrer'} gerade unterwegs`}
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
 export default function Landing() {
   const { data: stats } = useApi('/public/stats');
+  const { data: providers } = useApi<{ discord: boolean }>('/auth/providers');
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
   const y = useTransform(scrollYProgress, [0, 1], [0, 120]);
@@ -162,6 +222,7 @@ export default function Landing() {
             <Button to="/login?demo=1" size="lg" variant="outline" className="w-full sm:w-auto"><PlayCircle className="h-4 w-4" /> Live-Demo ansehen</Button>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-zinc-500">
+            {providers?.discord && <a href="/api/auth/discord" className="flex items-center gap-1.5 text-[#8b95ff] transition hover:text-white"><DiscordIcon className="h-3.5 w-3.5" />Direkt mit Discord starten</a>}
             {['Keine Kreditkarte', 'Einrichtung in 5 Minuten', 'Open Source'].map((t) => <span key={t} className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-amber-400" />{t}</span>)}
           </motion.div>
           <HeroMockup />
@@ -184,6 +245,9 @@ export default function Landing() {
           ))}
         </div>
       </section>
+
+      <Ticker />
+      <LiveSection />
 
       {/* FEATURES */}
       <section id="features" className="relative mx-auto max-w-6xl scroll-mt-24 px-4 py-28 sm:px-6">

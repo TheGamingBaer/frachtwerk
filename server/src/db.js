@@ -186,3 +186,16 @@ const q = {
 };
 
 module.exports = { db, ...q };
+
+// ---------- Migrationen (idempotent) ----------
+function addColumn(table, col, def) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+  if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`);
+}
+addColumn('users', 'discord_id', 'TEXT');
+addColumn('users', 'discord_name', 'TEXT');
+addColumn('users', 'avatar_url', 'TEXT');
+addColumn('users', 'has_password', 'INTEGER DEFAULT 1');
+addColumn('users', 'live_public', 'INTEGER DEFAULT 1');
+addColumn('live', 'trail', "TEXT DEFAULT '[]'");
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_discord ON users(discord_id)');

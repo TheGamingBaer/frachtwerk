@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { DiscordIcon } from '../../components/icons';
+import { tokenStore } from '../../lib/api';
 import { Flag, Package, Boxes, Route, Milestone, Globe2, ShieldCheck, Weight, Moon, Coins, Award, Trophy, Receipt, FileText, UserRound, Lock } from 'lucide-react';
 const Icons: Record<string, any> = { Flag, Package, Boxes, Route, Milestone, Globe2, ShieldCheck, Weight, Moon, Coins, Award, Trophy, Receipt, FileText, UserRound, Lock };
 import { useApi, useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
-import { Avatar, Button, Card, CardHeader, Field, Input, PageHeader, Progress, Textarea, useToast, cx } from '../../components/ui';
+import { Avatar, Button, Card, CardHeader, Field, Input, PageHeader, Progress, Textarea, Toggle, useToast, cx } from '../../components/ui';
 import { eur, km, monthName, num } from '../../lib/format';
 
 export function Achievements({ list }: { list: any[] }) {
@@ -30,10 +32,18 @@ export default function Profile() {
   const { data: slips } = useApi<any[]>('/me/payslips');
   const [f, setF] = useState<any>(null);
   const [pw, setPw] = useState({ current: '', next: '' });
-  useEffect(() => { if (me) setF({ display_name: me.user.display_name, bio: me.user.bio, country: me.user.country, avatar_hue: me.user.avatar_hue }); }, [me]);
+  const [sp, setSp] = useSearchParams();
+  const { data: providers } = useApi<{ discord: boolean }>('/auth/providers');
+  useEffect(() => { if (me) setF({ display_name: me.user.display_name, bio: me.user.bio, country: me.user.country, avatar_hue: me.user.avatar_hue, live_public: !!me.user.live_public }); }, [me]);
+  useEffect(() => {
+    const d = sp.get('discord');
+    if (d === 'linked') toast('Discord verknüpft 🎉'); else if (d === 'taken') toast('Dieses Discord-Konto ist bereits mit einem anderen Profil verknüpft', 'err');
+    if (d) { sp.delete('discord'); setSp(sp, { replace: true }); }
+  }, []);
   if (!me || !f) return null;
 
   const save = async () => { try { await api('/me', { method: 'PATCH', body: f }); await refresh(); toast('Profil gespeichert'); } catch (e: any) { toast(e.message, 'err'); } };
+  const unlink = async () => { try { await api('/auth/discord/unlink', { body: {} }); await refresh(); toast('Discord getrennt'); } catch (e: any) { toast(e.message, 'err'); } };
   const changePw = async () => { try { await api('/me/password', { body: pw }); setPw({ current: '', next: '' }); toast('Passwort geändert'); } catch (e: any) { toast(e.message, 'err'); } };
 
   return (
@@ -43,7 +53,7 @@ export default function Profile() {
         <div className="space-y-6">
           <Card glow className="p-6">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-              <div className="relative"><Avatar name={f.display_name} hue={f.avatar_hue} size={88} /><span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-amber-400 px-2 py-0.5 font-mono text-[11px] font-bold whitespace-nowrap text-ink-950">LV {me.level.level}</span></div>
+              <div className="relative"><Avatar name={f.display_name} hue={f.avatar_hue} src={f.avatar_url} size={88} /><span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-amber-400 px-2 py-0.5 font-mono text-[11px] font-bold whitespace-nowrap text-ink-950">LV {me.level.level}</span></div>
               <div className="flex-1">
                 <div className="font-display text-2xl font-semibold text-white">{f.display_name}</div>
                 <Progress value={me.level.progress} className="mt-3 h-2" />
@@ -77,15 +87,30 @@ export default function Profile() {
               <Field label="Anzeigename"><Input value={f.display_name} onChange={(e) => setF({ ...f, display_name: e.target.value })} /></Field>
               <Field label="Über mich"><Textarea value={f.bio} onChange={(e) => setF({ ...f, bio: e.target.value })} /></Field>
               <Field label="Avatar-Farbe"><input type="range" min={0} max={359} value={f.avatar_hue} onChange={(e) => setF({ ...f, avatar_hue: Number(e.target.value) })} className="w-full accent-amber-500" /></Field>
+              <Toggle checked={f.live_public} onChange={(v) => setF({ ...f, live_public: v })} label="Auf der öffentlichen Live-Map zeigen" desc="Deine Spedition sieht dich immer. Hier entscheidest du, ob alle anderen dich auch sehen." />
               <Button onClick={save} className="w-full">Speichern</Button>
             </div>
           </Card>
+          {(providers?.discord || me.user.discord_id) && (
+            <Card>
+              <div className="flex items-center gap-4 p-5">
+                <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#5865F2] text-white shadow-[0_8px_30px_-8px_rgba(88,101,242,.8)]"><DiscordIcon /></div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-white">Discord</div>
+                  <div className="truncate text-xs text-zinc-500">{me.user.discord_id ? <>Verknüpft als <span className="text-zinc-300">@{me.user.discord_name}</span></> : 'Mit Discord anmelden & Avatar übernehmen'}</div>
+                </div>
+                {me.user.discord_id
+                  ? <Button size="sm" variant="ghost" onClick={unlink}>Trennen</Button>
+                  : <Button size="sm" href={`/api/auth/discord?mode=link&token=${encodeURIComponent(tokenStore.get() || '')}`}>Verknüpfen</Button>}
+              </div>
+            </Card>
+          )}
           <Card>
-            <CardHeader title="Passwort ändern" icon={Icons.Lock} />
+            <CardHeader title={me.user.has_password ? 'Passwort ändern' : 'Passwort festlegen'} subtitle={me.user.has_password ? undefined : 'Damit kannst du dich auch ohne Discord anmelden.'} icon={Icons.Lock} />
             <div className="space-y-3 px-5 pb-5">
-              <Input type="password" placeholder="Aktuelles Passwort" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} />
+              {!!me.user.has_password && <Input type="password" placeholder="Aktuelles Passwort" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} />}
               <Input type="password" placeholder="Neues Passwort (min. 8 Zeichen)" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} />
-              <Button variant="outline" onClick={changePw} className="w-full" disabled={!pw.current || pw.next.length < 8}>Ändern</Button>
+              <Button variant="outline" onClick={changePw} className="w-full" disabled={(!!me.user.has_password && !pw.current) || pw.next.length < 8}>{me.user.has_password ? 'Ändern' : 'Festlegen'}</Button>
             </div>
           </Card>
         </div>

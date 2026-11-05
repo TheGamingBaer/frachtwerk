@@ -19,6 +19,11 @@ const SECRET = loadSecret();
 const sign = (user) => jwt.sign({ uid: user.id }, SECRET, { expiresIn: '30d' });
 const newApiToken = () => 'fw_' + crypto.randomBytes(24).toString('base64url');
 
+/** Nur Login-JWT (kein API-Token) */
+function loadUserFromToken(token) {
+  try { const { uid } = jwt.verify(token, SECRET); return get('SELECT * FROM users WHERE id=?', uid) || null; } catch { return null; }
+}
+
 function loadUser(req) {
   const h = req.headers.authorization || '';
   const token = h.startsWith('Bearer ') ? h.slice(7) : null;
@@ -49,8 +54,8 @@ const role = (min) => (req, res, next) => {
 
 function publicUser(u) {
   if (!u) return null;
-  const { password_hash, api_token, email, ...rest } = u;
+  const { password_hash, api_token, email, discord_id, has_password, ...rest } = u;
   return rest;
 }
 
-module.exports = { sign, auth, role, newApiToken, publicUser, RANK };
+module.exports = { sign, auth, role, newApiToken, publicUser, RANK, SECRET, loadUserFromToken };

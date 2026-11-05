@@ -70,7 +70,7 @@ export default function Members() {
           {c.members.map((m: any) => (
             <div key={m.id} className="grid grid-cols-[1fr_auto] items-center gap-4 border-b border-white/[0.04] px-5 py-3.5 last:border-0 lg:grid-cols-[1.6fr_1fr_.8fr_.8fr_.8fr_.6fr]">
               <Link to={`/driver/${m.username}`} className="flex min-w-0 items-center gap-3">
-                <Avatar name={m.display_name} hue={m.avatar_hue} size={38} />
+                <Avatar name={m.display_name} hue={m.avatar_hue} src={m.avatar_url} size={38} />
                 <div className="min-w-0"><div className="flex items-center gap-1.5 truncate text-sm font-medium text-white">{m.display_name}{m.role === 'owner' && <Crown className="h-3.5 w-3.5 text-amber-400" />}{m.id === me?.user.id && <span className="text-xs text-zinc-500">(du)</span>}</div><div className="text-xs text-zinc-500">{m.last_job ? `Zuletzt ${ago(m.last_job)}` : 'Noch keine Tour'}</div></div>
               </Link>
               <div className="hidden lg:block"><Badge tone={ROLE_TONE[m.role]}>{ROLE_LABEL[m.role]}</Badge><div className="mt-1 text-xs text-zinc-500">{m.rank_title}</div></div>
@@ -89,7 +89,7 @@ export default function Members() {
           {apps?.map((a: any) => (
             <Card key={a.id} className="p-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                <Avatar name={a.display_name} hue={a.avatar_hue} size={46} />
+                <Avatar name={a.display_name} hue={a.avatar_hue} src={a.avatar_url} size={46} />
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-2"><Link to={`/driver/${a.username}`} className="font-medium text-white hover:text-amber-300">{a.display_name}</Link><span className="text-xs text-zinc-500">{ago(a.created_at)}</span>
                     {a.status !== 'pending' && <Badge tone={a.status === 'accepted' ? 'emerald' : 'rose'}>{a.status === 'accepted' ? 'Angenommen' : 'Abgelehnt'}</Badge>}</div>

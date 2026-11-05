@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { get, all, run, tx } = require('./db');
 const { sign, auth, role, newApiToken, publicUser, RANK } = require('./auth');
 const L = require('./logic');
+const Live = require('./live');
 
 const api = express.Router();
 const wrap = (fn) => (req, res, next) => { try { const r = fn(req, res, next); if (r && r.catch) r.catch(next); } catch (e) { next(e); } };
@@ -56,8 +57,9 @@ api.get('/me', auth, wrap((req, res) => {
 
 api.patch('/me', auth, wrap((req, res) => {
   const b = req.body;
-  run(`UPDATE users SET display_name=?, bio=?, country=?, avatar_hue=? WHERE id=?`,
-    str(b.display_name, 40) || req.user.username, str(b.bio, 500), str(b.country, 4) || 'DE', Math.round(num(b.avatar_hue, 28)) % 360, req.user.id);
+  run(`UPDATE users SET display_name=?, bio=?, country=?, avatar_hue=?, live_public=? WHERE id=?`,
+    str(b.display_name, 40) || req.user.username, str(b.bio, 500), str(b.country, 4) || 'DE', Math.round(num(b.avatar_hue, 28)) % 360,
+    b.live_public === undefined ? req.user.live_public : (b.live_public ? 1 : 0), req.user.id);
   res.json({ ok: true });
 }));
 
@@ -66,9 +68,9 @@ api.post('/me/token', auth, wrap((req, res) => {
 }));
 
 api.post('/me/password', auth, wrap((req, res) => {
-  if (!bcrypt.compareSync(String(req.body.current || ''), req.user.password_hash)) return bad(res, 'Aktuelles Passwort falsch');
+  if (req.user.has_password && !bcrypt.compareSync(String(req.body.current || ''), req.user.password_hash)) return bad(res, 'Aktuelles Passwort falsch');
   if (String(req.body.next || '').length < 8) return bad(res, 'Neues Passwort zu kurz');
-  run('UPDATE users SET password_hash=? WHERE id=?', bcrypt.hashSync(String(req.body.next), 10), req.user.id); res.json({ ok: true });
+  run('UPDATE users SET password_hash=?, has_password=1 WHERE id=?', bcrypt.hashSync(String(req.body.next), 10), req.user.id); res.json({ ok: true });
 }));
 
 api.get('/me/payslips', auth, wrap((req, res) => {
@@ -99,7 +101,7 @@ api.get('/companies', wrap((req, res) => {
 api.get('/companies/:slug', wrap((req, res) => {
   const c = get(`${companyListSql} WHERE c.slug=?`, req.params.slug);
   if (!c) return bad(res, 'Firma nicht gefunden', 404);
-  const members = all(`SELECT u.id,u.username,u.display_name,u.avatar_hue,u.xp,u.country,m.role,m.rank_title,m.joined_at,
+  const members = all(`SELECT u.id,u.username,u.display_name,u.avatar_hue, u.avatar_url,u.xp,u.country,m.role,m.rank_title,m.joined_at,
     (SELECT COALESCE(SUM(driven_km),0) FROM jobs j WHERE j.user_id=u.id AND j.company_id=m.company_id AND j.status='delivered') km
     FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.company_id=? ORDER BY km DESC`, c.id);
   const recent = all(`SELECT j.id,j.origin_city,j.dest_city,j.cargo,j.cargo_mass,j.driven_km,j.finished_at,u.display_name driver
@@ -126,7 +128,7 @@ api.get('/leaderboard', wrap((req, res) => {
       FROM jobs j JOIN companies c ON c.id=j.company_id WHERE j.status='delivered' AND j.review!='rejected' AND j.finished_at >= ${since}
       GROUP BY c.id ORDER BY value DESC LIMIT 50`));
   }
-  res.json(all(`SELECT u.id,u.username,u.display_name,u.avatar_hue,u.xp,u.country, ${metric} value, COUNT(j.id) jobs, SUM(j.driven_km) km,
+  res.json(all(`SELECT u.id,u.username,u.display_name,u.avatar_hue, u.avatar_url,u.xp,u.country, ${metric} value, COUNT(j.id) jobs, SUM(j.driven_km) km,
       (SELECT c.tag FROM memberships m JOIN companies c ON c.id=m.company_id WHERE m.user_id=u.id) company_tag
     FROM jobs j JOIN users u ON u.id=j.user_id WHERE j.status='delivered' AND j.review!='rejected' AND j.finished_at >= ${since}
     ${where.length ? 'AND ' + where.join(' AND ') : ''} GROUP BY u.id ORDER BY value DESC LIMIT 50`, ...p));
@@ -193,7 +195,7 @@ api.post('/company/leave', auth, role('driver'), wrap((req, res) => {
 
 api.get('/company', auth, role('driver'), wrap((req, res) => {
   const c = req.company;
-  const members = all(`SELECT u.id,u.username,u.display_name,u.avatar_hue,u.xp,u.country,m.role,m.rank_title,m.joined_at,
+  const members = all(`SELECT u.id,u.username,u.display_name,u.avatar_hue, u.avatar_url,u.xp,u.country,m.role,m.rank_title,m.joined_at,
      COUNT(j.id) jobs, COALESCE(SUM(j.driven_km),0) km, COALESCE(SUM(j.income),0) income, COALESCE(SUM(j.payout),0) payout,
      COALESCE(AVG(j.damage),0) avg_damage, MAX(j.finished_at) last_job
      FROM memberships m JOIN users u ON u.id=m.user_id
@@ -229,7 +231,7 @@ api.delete('/company', auth, role('owner'), wrap((req, res) => {
 }));
 
 api.get('/company/applications', auth, role('admin'), wrap((req, res) => {
-  res.json(all(`SELECT a.*, u.username, u.display_name, u.avatar_hue, u.xp, u.country,
+  res.json(all(`SELECT a.*, u.username, u.display_name, u.avatar_hue, u.avatar_url, u.xp, u.country,
     (SELECT COALESCE(SUM(driven_km),0) FROM jobs WHERE user_id=u.id AND status='delivered') km,
     (SELECT COUNT(*) FROM jobs WHERE user_id=u.id AND status='delivered') jobs
     FROM applications a JOIN users u ON u.id=a.user_id WHERE a.company_id=? ORDER BY a.status='pending' DESC, a.created_at DESC LIMIT 100`, req.company.id));
@@ -290,7 +292,7 @@ api.get('/company/overview', auth, role('driver'), wrap((req, res) => {
      FROM jobs WHERE company_id=? AND status='delivered' AND review!='rejected' AND finished_at >= date('now','-29 days') GROUP BY day ORDER BY day`, id);
   const cargo = all(`SELECT cargo name, COUNT(*) n, ROUND(SUM(income)) income FROM jobs WHERE company_id=? AND status='delivered' GROUP BY cargo ORDER BY n DESC LIMIT 6`, id);
   const routes = all(`SELECT dest_city city, COUNT(*) n FROM jobs WHERE company_id=? AND status='delivered' GROUP BY dest_city ORDER BY n DESC LIMIT 6`, id);
-  const top = all(`SELECT u.id,u.username,u.display_name,u.avatar_hue, ROUND(SUM(j.driven_km)) km, COUNT(*) jobs FROM jobs j JOIN users u ON u.id=j.user_id
+  const top = all(`SELECT u.id,u.username,u.display_name,u.avatar_hue, u.avatar_url, ROUND(SUM(j.driven_km)) km, COUNT(*) jobs FROM jobs j JOIN users u ON u.id=j.user_id
      WHERE j.company_id=? AND j.status='delivered' AND j.finished_at >= datetime('now','start of month') GROUP BY u.id ORDER BY km DESC LIMIT 5`, id);
   res.json({ month, lastMonth, daily, cargo, routes, top, balance: req.company.balance });
 }));
@@ -324,7 +326,7 @@ api.post('/company/transactions', auth, role('admin'), wrap((req, res) => {
 
 // ---------- Abrechnung / Lohnlauf ----------
 function payrollPreview(companyId, period) {
-  const rows = all(`SELECT u.id user_id, u.username, u.display_name, u.avatar_hue, COUNT(j.id) jobs, ROUND(SUM(j.driven_km),1) km,
+  const rows = all(`SELECT u.id user_id, u.username, u.display_name, u.avatar_hue, u.avatar_url, COUNT(j.id) jobs, ROUND(SUM(j.driven_km),1) km,
       ROUND(SUM(j.income),2) income, ROUND(SUM(j.pay_base),2) gross, ROUND(SUM(j.pay_bonus),2) bonus,
       ROUND(SUM(j.pay_deductions),2) deductions, ROUND(SUM(j.payout),2) net, ROUND(AVG(j.damage),2) avg_damage
     FROM jobs j JOIN users u ON u.id=j.user_id
@@ -369,7 +371,7 @@ api.get('/payrolls/:id', auth, wrap((req, res) => {
   const p = get(`SELECT p.*, c.name company_name, c.tag company_tag, c.hue company_hue FROM payrolls p JOIN companies c ON c.id=p.company_id WHERE p.id=?`, num(req.params.id));
   if (!p) return bad(res, 'Nicht gefunden', 404);
   const staff = req.member && req.member.company_id === p.company_id && RANK[req.member.role] >= RANK.dispatcher;
-  const items = all(`SELECT pi.*, u.username, u.display_name, u.avatar_hue FROM payroll_items pi JOIN users u ON u.id=pi.user_id WHERE pi.payroll_id=? ${staff ? '' : 'AND pi.user_id=' + Number(req.user.id)} ORDER BY net DESC`, p.id);
+  const items = all(`SELECT pi.*, u.username, u.display_name, u.avatar_hue, u.avatar_url FROM payroll_items pi JOIN users u ON u.id=pi.user_id WHERE pi.payroll_id=? ${staff ? '' : 'AND pi.user_id=' + Number(req.user.id)} ORDER BY net DESC`, p.id);
   if (!staff && !items.length) return bad(res, 'Keine Berechtigung', 403);
   const jobs = all(`SELECT id,user_id,origin_city,dest_city,cargo,cargo_mass,driven_km,income,damage,pay_base,pay_bonus,pay_deductions,payout,finished_at
     FROM jobs WHERE payroll_id=? ${staff ? '' : 'AND user_id=' + Number(req.user.id)} ORDER BY finished_at`, p.id);
@@ -430,7 +432,7 @@ api.delete('/company/events/:id', auth, role('dispatcher'), wrap((req, res) => {
 
 // ---------- News ----------
 api.get('/company/news', auth, role('driver'), wrap((req, res) => {
-  res.json(all(`SELECT n.*, u.display_name author, u.avatar_hue FROM news n LEFT JOIN users u ON u.id=n.author_id WHERE n.company_id=? ORDER BY n.pinned DESC, n.created_at DESC LIMIT 30`, req.company.id));
+  res.json(all(`SELECT n.*, u.display_name author, u.avatar_hue, u.avatar_url FROM news n LEFT JOIN users u ON u.id=n.author_id WHERE n.company_id=? ORDER BY n.pinned DESC, n.created_at DESC LIMIT 30`, req.company.id));
 }));
 api.post('/company/news', auth, role('dispatcher'), wrap((req, res) => {
   if (!str(req.body.title)) return bad(res, 'Titel angeben');
@@ -444,7 +446,7 @@ api.delete('/company/news/:id', auth, role('dispatcher'), wrap((req, res) => {
 // =====================================================================
 // TOUREN / FRACHTBRIEFE
 // =====================================================================
-const jobSelect = `SELECT j.*, u.username, u.display_name, u.avatar_hue FROM jobs j JOIN users u ON u.id=j.user_id`;
+const jobSelect = `SELECT j.*, u.username, u.display_name, u.avatar_hue, u.avatar_url FROM jobs j JOIN users u ON u.id=j.user_id`;
 
 api.get('/jobs', auth, wrap((req, res) => {
   const where = []; const p = [];
@@ -543,7 +545,7 @@ api.get('/dashboard', auth, wrap((req, res) => {
     WHERE user_id=? AND status='delivered' AND review!='rejected' AND finished_at >= date('now','-29 days') GROUP BY day ORDER BY day`, uid);
   const recent = all(`${jobSelect} WHERE j.user_id=? ORDER BY COALESCE(j.finished_at, j.started_at) DESC LIMIT 6`, uid);
   const cid = req.member?.company_id;
-  const news = cid ? all(`SELECT n.*, u.display_name author, u.avatar_hue FROM news n LEFT JOIN users u ON u.id=n.author_id WHERE n.company_id=? ORDER BY n.pinned DESC, n.created_at DESC LIMIT 3`, cid) : [];
+  const news = cid ? all(`SELECT n.*, u.display_name author, u.avatar_hue, u.avatar_url FROM news n LEFT JOIN users u ON u.id=n.author_id WHERE n.company_id=? ORDER BY n.pinned DESC, n.created_at DESC LIMIT 3`, cid) : [];
   const events = cid ? all(`SELECT e.*, (SELECT COUNT(*) FROM event_attendees a WHERE a.event_id=e.id) attendees FROM events e WHERE e.company_id=? AND e.start_at >= datetime('now','-3 hours') ORDER BY e.start_at LIMIT 3`, cid) : [];
   const rank = cid ? all(`SELECT user_id, SUM(driven_km) km FROM jobs WHERE company_id=? AND status='delivered' AND finished_at >= datetime('now','start of month') GROUP BY user_id ORDER BY km DESC`, cid) : [];
   const active = get(`SELECT * FROM jobs WHERE user_id=? AND status='active' ORDER BY started_at DESC LIMIT 1`, uid) || null;
@@ -582,25 +584,37 @@ api.post('/client/job/:id/finish', auth, wrap((req, res) => {
     // Kilometerstand des zugewiesenen Firmen-LKW fortschreiben
     if (j.company_id) run('UPDATE trucks SET odometer=odometer+? WHERE company_id=? AND assigned_user=?', Math.max(0, num(b.driven_km)), j.company_id, req.user.id);
   });
-  run('DELETE FROM live WHERE user_id=?', req.user.id);
-  res.json({ ok: true, job: get('SELECT id,status,review,payout FROM jobs WHERE id=?', j.id) });
+  const done = get('SELECT id,status,review,payout,origin_city,dest_city,cargo,driven_km,damage FROM jobs WHERE id=?', j.id);
+  Live.broadcastEvent(req.user.id, done.status === 'delivered' ? 'delivery' : 'cancel', { job: done, display_name: req.user.display_name });
+  res.json({ ok: true, job: done });
 }));
 
 api.post('/client/telemetry', auth, wrap((req, res) => {
-  const b = req.body || {};
-  const data = JSON.stringify({ speed: num(b.speed), truck: str(b.truck, 80), cargo: str(b.cargo, 80), origin: str(b.origin, 60), destination: str(b.destination, 60),
-    remaining_km: num(b.remaining_km), fuel: num(b.fuel), fuel_capacity: num(b.fuel_capacity), damage: num(b.damage), game: str(b.game, 6), paused: !!b.paused,
-    x: num(b.x), z: num(b.z), eta_min: num(b.eta_min) });
-  run(`INSERT INTO live (user_id,data,updated_at) VALUES (?,?,?) ON CONFLICT(user_id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at`, req.user.id, data, Date.now());
+  Live.update(req.user.id, req.body || {});
   res.json({ ok: true });
 }));
 
+// ---------- Live-Karte ----------
+const viewerOf = (req) => (req.user ? { userId: req.user.id, companyId: req.member?.company_id || null } : null);
+
 api.get('/live', auth, wrap((req, res) => {
-  const cid = req.member?.company_id;
-  const rows = all(`SELECT l.*, u.id uid, u.username, u.display_name, u.avatar_hue FROM live l JOIN users u ON u.id=l.user_id
-    ${cid ? 'JOIN memberships m ON m.user_id=l.user_id AND m.company_id=' + Number(cid) : 'WHERE l.user_id=' + Number(req.user.id)}
-    ${cid ? 'WHERE' : 'AND'} l.updated_at > ?`, Date.now() - 90_000);
-  res.json(rows.map((r) => ({ user_id: r.uid, username: r.username, display_name: r.display_name, avatar_hue: r.avatar_hue, updated_at: r.updated_at, ...JSON.parse(r.data) })));
+  res.json(Live.list(viewerOf(req), req.query.scope === 'company' ? 'company' : 'all'));
+}));
+
+// Server-Sent Events: EventSource kann keine Header setzen, daher Token per Query
+api.get('/stream', (req, res, next) => {
+  if (req.query.access_token) req.headers.authorization = `Bearer ${req.query.access_token}`;
+  next();
+}, auth, (req, res) => Live.subscribe(req, res, viewerOf(req), req.query.scope === 'company' ? 'company' : 'all'));
+
+api.get('/public/live', wrap((req, res) => res.json(Live.list(null, 'all'))));
+api.get('/public/stream', (req, res) => Live.subscribe(req, res, null, 'all'));
+
+api.get('/public/activity', wrap((req, res) => {
+  res.json(all(`SELECT j.id, j.origin_city, j.dest_city, j.cargo, j.cargo_mass, j.driven_km, j.finished_at, j.game,
+      u.display_name, u.username, u.avatar_hue, u.avatar_url, c.tag company_tag, c.hue company_hue
+    FROM jobs j JOIN users u ON u.id=j.user_id LEFT JOIN companies c ON c.id=j.company_id
+    WHERE j.status='delivered' AND u.live_public=1 ORDER BY j.finished_at DESC LIMIT 12`));
 }));
 
 module.exports = { api, finalizeJob };

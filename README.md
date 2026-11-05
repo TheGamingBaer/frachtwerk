@@ -16,7 +16,9 @@ Ich wollte kein weiteres Tool mit Premium-Abo bauen, sondern eins, zu dem Firmen
 | **Abrechnung** | Lohnformel pro Firma: Kilometergeld, Frachtanteil %, Schadenfrei-Bonus, Abzug pro % Schaden, Kraftstoff (Firma oder Fahrer), Tempolimit-Strafe, Mindeststrecke, Auto-Freigabe. Dazu ein Live-Lohnrechner |
 | **Lohnlauf** | Monatsvorschau, CSV-Export, Abschluss mit einem Klick, druckbare Lohnzettel (PDF über Drucken) |
 | **Finanzen** | Firmenkonto, Buchungsjournal, Cashflow-Diagramm, Ausgaben, Einzahlungen, Prämien |
-| **Live-Karte** | Echtzeitstatus der Fahrer: Tempo, Route, Restkilometer, Tank, Schaden |
+| **Live-Map** | Europa- (ETS2) und USA-Karte (ATS) in der Spielprojektion. Echtzeit per Server-Push: Spuren, Route zum Ziel, Tempo, Tank, Fracht. **Speditionsansicht** (nur eigene Fahrer + Offline-Liste) und **globale Ansicht**, Verfolgen-Modus, Lieferungs-Ticker, Vollbild. Öffentliche Karte unter `/map` |
+| **Discord** | Login & Registrierung mit Discord, Konto verknüpfen, Discord-Avatar |
+| **Bedienung** | Befehlspalette (⌘K / Strg+K), installierbar als App (PWA), komplett mobil nutzbar |
 | **Ranglisten** | Fahrer und Firmen, nach 7 Tagen, Monat oder gesamt; nach km, Erlös, Lieferungen oder Tonnage |
 | **Community** | Konvois/Events mit Zusagen, Firmen-News mit Anpinnen |
 | **Fuhrpark** | LKW kaufen und zuweisen, der Kilometerstand läuft automatisch mit |
@@ -32,6 +34,18 @@ npm start          # → http://localhost:8080
 ```
 
 Entwicklung mit Hot-Reload: `npm run dev:server` und `npm run dev:web` (Vite auf :5173, leitet /api weiter).
+
+**Live-Map ausprobieren ohne Spiel:** `npm run simulate` lässt die Demo-Fahrer im Zeitraffer durch Europa fahren (Touren starten, Live-Daten, Ablieferungen).
+
+## Discord-Login einrichten (optional, kostenlos)
+
+1. Im [Discord Developer Portal](https://discord.com/developers/applications) eine Anwendung anlegen.
+2. Unter **OAuth2 → Redirects** eintragen: `https://DEINE-ADRESSE/api/auth/discord/callback`
+3. Server mit diesen Umgebungsvariablen starten:
+   ```bash
+   PUBLIC_URL=https://deine-adresse.de DISCORD_CLIENT_ID=… DISCORD_CLIENT_SECRET=… npm start
+   ```
+Ohne diese Variablen wird der Discord-Button einfach ausgeblendet. Ist die Discord-E-Mail bestätigt und existiert schon ein Konto damit, wird es automatisch verknüpft.
 
 ## Telemetrie-Client (für die Fahrer)
 
@@ -77,15 +91,20 @@ Die Daten liegen in `./data`. Für HTTPS z. B. Caddy davorschalten oder ebenfall
 | `PORT` | `8080` | HTTP-Port |
 | `DB_PATH` | `server/data/frachtwerk.db` | Pfad zur SQLite-Datei |
 | `JWT_SECRET` | wird erzeugt und neben der DB gespeichert | Geheimnis für die Login-Tokens |
+| `PUBLIC_URL` | aus der Anfrage abgeleitet | Öffentliche Adresse (für Discord-Redirect) |
+| `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | – | Aktiviert den Discord-Login |
 
 **Backup:** einfach die `.db`-Datei (und `.jwt-secret`) kopieren.
 
 ## Projektstruktur
 ```
 server/   Express-API, SQLite-Schema, Abrechnungs-Engine (src/logic.js), Demo-Seed
-web/      React + Vite + Tailwind + Framer Motion + Recharts
+web/      React + Vite + Tailwind + Framer Motion + Recharts + d3 (Live-Map)
+web/scripts/build-geo.mjs   erzeugt die Kartendaten (public/geo) aus Natural Earth
 client/   Telemetrie-Client (eine Datei, ohne Abhängigkeiten)
 ```
 
 ---
+Kartendaten: [Natural Earth](https://www.naturalearthdata.com) (gemeinfrei). Die Umrechnung der Spielkoordinaten nutzt die Lambert-Projektion der SCS-Spielwelt; Positionen sind auf Stadtebene genau.
+
 Nicht mit SCS Software verbunden. Euro Truck Simulator 2 und American Truck Simulator sind Marken von SCS Software.

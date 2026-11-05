@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import { LiveMap } from '../../components/LiveMap';
+import { useLiveDrivers } from '../../lib/live';
 import { Route, Coins, Package, Wallet, Users2, ShieldCheck, ClipboardCheck, UserPlus, ArrowRight, MapPin, ExternalLink } from 'lucide-react';
 import { useApi, useAuth } from '../../lib/auth';
 import { Avatar, Button, Card, CardHeader, CompanyBadge, PageLoader, Stat, Badge } from '../../components/ui';
@@ -6,6 +8,37 @@ import { AreaTrend, Bars, Donut, fillDays } from '../../components/charts';
 import { can, eur, km, num, compact } from '../../lib/format';
 
 const delta = (a: number, b: number) => (b ? ((a - b) / b) * 100 : null);
+
+function FleetLive() {
+  const { store, version, drivers, status } = useLiveDrivers({ scope: 'company' });
+  const game = drivers.some((d) => d.game === 'ets2') || !drivers.length ? 'ets2' : 'ats';
+  const list = drivers.filter((d) => d.game === game);
+  return (
+    <Card>
+      <div className="grid lg:grid-cols-[1fr_300px]">
+        <div className="relative h-[340px] lg:h-[380px]">
+          <LiveMap game={game} store={store} version={version} compact />
+          <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2 rounded-xl border border-white/10 bg-[#0a0e18]/80 px-3 py-2 text-xs font-medium text-white backdrop-blur-xl">
+            <span className={`h-2 w-2 rounded-full ${status === 'live' ? 'animate-pulse bg-emerald-400' : 'bg-amber-400'}`} />Flotte live · {list.length} unterwegs
+          </div>
+        </div>
+        <div className="flex flex-col border-t border-white/[0.06] lg:border-l lg:border-t-0">
+          <div className="flex items-center justify-between px-5 pt-5"><h3 className="font-display font-semibold text-white">Gerade on Tour</h3><Link to="/app/map" className="text-xs text-amber-400 hover:text-amber-300">Vollbild →</Link></div>
+          <div className="flex-1 space-y-1 overflow-y-auto p-3">
+            {list.map((d) => (
+              <Link key={d.user_id} to="/app/map" className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-white/[0.04]">
+                <Avatar name={d.display_name} hue={d.avatar_hue} src={d.avatar_url} size={32} />
+                <div className="min-w-0 flex-1"><div className="truncate text-sm text-white">{d.display_name}</div><div className="truncate text-xs text-zinc-500">{d.destination ? `→ ${d.destination}` : 'Freie Fahrt'}</div></div>
+                <span className="font-mono text-xs text-zinc-300">{Math.round(d.speed)} km/h</span>
+              </Link>
+            ))}
+            {!list.length && <p className="px-2 py-6 text-center text-sm text-zinc-500">Gerade fährt niemand. Sobald jemand den Client startet, erscheint er hier.</p>}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 export default function CompanyHome() {
   const { me } = useAuth();
@@ -41,6 +74,8 @@ export default function CompanyHome() {
         </div>
       )}
 
+      <FleetLive />
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat label="Kilometer · Monat" value={o.month.km} icon={Route} format={km} delta={delta(o.month.km, o.lastMonth.km * frac)} hint="vs. Vormonat" />
         <Stat label="Umsatz · Monat" value={o.month.income} icon={Coins} format={(n) => eur(n)} accent="cyan" delta={delta(o.month.income, o.lastMonth.income * frac)} hint="vs. Vormonat" />
@@ -59,7 +94,7 @@ export default function CompanyHome() {
             {o.top.map((t: any, i: number) => (
               <Link key={t.id} to={`/driver/${t.username}`} className="flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-white/[0.03]">
                 <span className={`grid h-6 w-6 place-items-center rounded-full font-mono text-xs ${i === 0 ? 'bg-amber-400 text-ink-950' : 'bg-white/5 text-zinc-500'}`}>{i + 1}</span>
-                <Avatar name={t.display_name} hue={t.avatar_hue} size={34} />
+                <Avatar name={t.display_name} hue={t.avatar_hue} src={t.avatar_url} size={34} />
                 <div className="flex-1"><div className="text-sm font-medium text-white">{t.display_name}</div><div className="text-xs text-zinc-500">{t.jobs} Lieferungen</div></div>
                 <span className="font-mono text-sm text-zinc-200">{compact(t.km)} km</span>
               </Link>

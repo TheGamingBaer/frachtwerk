@@ -34,7 +34,7 @@ export default function News() {
         {data?.map((n) => (
           <Card key={n.id} className={n.pinned ? 'border-amber-500/25 p-6' : 'p-6'}>
             <div className="flex items-center gap-3">
-              <Avatar name={n.author || '?'} hue={n.avatar_hue} size={36} />
+              <Avatar name={n.author || '?'} hue={n.avatar_hue} src={n.avatar_url} size={36} />
               <div className="flex-1"><div className="text-sm font-medium text-white">{n.author}</div><div className="text-xs text-zinc-500">{ago(n.created_at)}</div></div>
               {n.pinned ? <Pin className="h-4 w-4 text-amber-400" /> : null}
               {staff && <button onClick={() => del(n.id)} className="rounded-lg p-1.5 text-zinc-600 hover:bg-white/5 hover:text-rose-300"><Trash2 className="h-4 w-4" /></button>}

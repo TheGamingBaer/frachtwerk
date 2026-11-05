@@ -13,7 +13,19 @@ body { font-feature-settings: 'cv11', 'ss01'; overflow-x: hidden; }
   .glass {
     @apply bg-white/[0.03] border border-white/[0.07] backdrop-blur-xl shadow-card;
   }
-  .card { @apply glass rounded-2xl; }
+  .card { @apply glass relative rounded-2xl; }
+  /* Spotlight: weiches Licht folgt dem Mauszeiger */
+  .card::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s;
+    background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 170, 80, .07), transparent 45%);
+  }
+  .card:hover::before { opacity: 1; }
+  .card::after {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; padding: 1px; opacity: 0; transition: opacity .3s;
+    background: radial-gradient(300px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 179, 71, .45), transparent 50%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  }
+  .card:hover::after { opacity: 1; }
   .label { @apply text-[11px] uppercase tracking-[0.14em] text-zinc-500 font-medium; }
   .input {
     @apply w-full rounded-xl bg-ink-900/80 border border-white/10 px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600

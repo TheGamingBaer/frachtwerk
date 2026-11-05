@@ -41,7 +41,7 @@ export default function Jobs() {
         {data?.rows.map((j: any) => (
           <button key={j.id} onClick={() => setJobId(j.id)} className="grid w-full grid-cols-[1fr_auto] items-center gap-4 border-b border-white/[0.04] px-5 py-3.5 text-left transition last:border-0 hover:bg-white/[0.025] md:grid-cols-[1.6fr_1fr_.7fr_.7fr_.8fr_.8fr]">
             <div className="flex min-w-0 items-center gap-3">
-              {scope === 'company' ? <Avatar name={j.display_name} hue={j.avatar_hue} size={32} /> : <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/[0.04]"><Route className="h-4 w-4 text-zinc-500" /></div>}
+              {scope === 'company' ? <Avatar name={j.display_name} hue={j.avatar_hue} src={j.avatar_url} size={32} /> : <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/[0.04]"><Route className="h-4 w-4 text-zinc-500" /></div>}
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium text-white">{j.origin_city} <span className="text-zinc-600">→</span> {j.dest_city}</div>
                 <div className="truncate text-xs text-zinc-500">{scope === 'company' ? `${j.display_name} · ` : ''}{ago(j.finished_at || j.started_at)}{j.source === 'manual' ? ' · manuell' : ''}</div>
@@ -95,7 +95,7 @@ export function JobModal({ id, onClose, onChange }: { id: number | null; onClose
         <div className="space-y-6">
           <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-gradient-to-br from-amber-500/10 via-transparent to-cyan-500/[0.06] p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3"><Avatar name={j.display_name} hue={j.avatar_hue} size={34} /><div><div className="text-sm font-medium text-white">{j.display_name}</div><div className="text-xs text-zinc-500">{dateTime(j.finished_at || j.started_at)} · {j.game.toUpperCase()} · {j.source === 'client' ? 'Client' : 'Manuell'}</div></div></div>
+              <div className="flex items-center gap-3"><Avatar name={j.display_name} hue={j.avatar_hue} src={j.avatar_url} size={34} /><div><div className="text-sm font-medium text-white">{j.display_name}</div><div className="text-xs text-zinc-500">{dateTime(j.finished_at || j.started_at)} · {j.game.toUpperCase()} · {j.source === 'client' ? 'Client' : 'Manuell'}</div></div></div>
               <ReviewBadge review={j.review} status={j.status} />
             </div>
             <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-3">

@@ -46,7 +46,7 @@ export default function Leaderboard() {
               <motion.div key={r.id} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + (2 - idx) * 0.1, type: 'spring', stiffness: 120 }} className="flex flex-col items-center">
                 <div className="relative mb-3">
                   {idx === 0 && <Crown className="absolute -top-6 left-1/2 h-6 w-6 -translate-x-1/2 text-amber-400 drop-shadow-[0_0_10px_rgba(255,179,71,.8)]" />}
-                  {type === 'companies' ? <CompanyBadge tag={r.tag} hue={r.hue} size={idx === 0 ? 72 : 56} /> : <Avatar name={name} hue={r.avatar_hue} size={idx === 0 ? 72 : 56} />}
+                  {type === 'companies' ? <CompanyBadge tag={r.tag} hue={r.hue} size={idx === 0 ? 72 : 56} /> : <Avatar name={name} hue={r.avatar_hue} src={r.avatar_url} size={idx === 0 ? 72 : 56} />}
                 </div>
                 <Link to={type === 'companies' ? `/c/${r.slug}` : `/driver/${r.username}`} className="max-w-full truncate text-center text-sm font-semibold text-white hover:text-amber-300">{name}</Link>
                 <div className="mb-3 font-mono text-xs text-zinc-400">{fmt(r.value)}</div>
@@ -67,7 +67,7 @@ export default function Leaderboard() {
               <motion.div key={r.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
                 className={cx('flex items-center gap-4 border-b border-white/[0.04] px-5 py-3 last:border-0', mine && 'bg-amber-500/[0.06]')}>
                 <span className="w-6 text-right font-mono text-sm text-zinc-500">{i + 4}</span>
-                {type === 'companies' ? <CompanyBadge tag={r.tag} hue={r.hue} size={34} /> : <Avatar name={r.display_name} hue={r.avatar_hue} size={34} />}
+                {type === 'companies' ? <CompanyBadge tag={r.tag} hue={r.hue} size={34} /> : <Avatar name={r.display_name} hue={r.avatar_hue} src={r.avatar_url} size={34} />}
                 <div className="min-w-0 flex-1">
                   <Link to={type === 'companies' ? `/c/${r.slug}` : `/driver/${r.username}`} className="truncate text-sm font-medium text-white hover:text-amber-300">{type === 'companies' ? r.name : r.display_name}</Link>
                   <div className="text-xs text-zinc-500">{r.jobs} Lieferungen{r.company_tag ? ` · ${r.company_tag}` : ''}</div>

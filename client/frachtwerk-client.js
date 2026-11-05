@@ -114,14 +114,15 @@ async function onFinish() {
 
 let lastLive = 0;
 async function live(d) {
-  if (Date.now() - lastLive < 5000) return;
+  if (Date.now() - lastLive < (CFG.demo ? 1500 : 3000)) return;
   lastLive = Date.now();
   const p = d.truck?.placement || {};
   await send('/client/telemetry', {
     game: /ats/i.test(d.game?.gameName || '') ? 'ats' : 'ets2', paused: !!d.game?.paused, speed: Math.abs(d.truck?.speed || 0), truck: `${d.truck?.make || ''} ${d.truck?.model || ''}`.trim(),
     cargo: hasJob(d) ? d.trailer?.name : '', origin: hasJob(d) ? d.job.sourceCity : '', destination: hasJob(d) ? d.job.destinationCity : '',
     remaining_km: (d.navigation?.estimatedDistance || 0) / 1000, eta_min: durationMin(d.navigation?.estimatedTime), fuel: d.truck?.fuel || 0, fuel_capacity: d.truck?.fuelCapacity || 0,
-    damage: job ? Math.max(0, (job.maxWear - job.start.wear) * 100) : 0, x: p.x || 0, z: p.z || 0,
+    damage: job ? Math.max(0, (job.maxWear - job.start.wear) * 100) : 0, x: p.x || 0, z: p.z || 0, heading: p.heading || 0,
+    cargo_mass: hasJob(d) ? (d.trailer?.mass || 0) / 1000 : 0, income: hasJob(d) ? d.job.income : 0,
   }).catch(() => {});
 }
 
@@ -153,27 +154,30 @@ async function poll() {
 
 // ---------------- Demo-Simulation ----------------
 function demoFeed() {
-  const route = [['Hamburg', 'Posped'], ['Berlin', 'Tradeaux'], ['München', 'Kaarfor'], ['Wien', 'Eurogoodies'], ['Prag', 'Transinet'], ['Frankfurt', 'Stokes']];
-  const a = route[Math.floor(Math.random() * route.length)]; let b = a; while (b === a) b = route[Math.floor(Math.random() * route.length)];
-  const total = 60 + Math.random() * 40; // km – im Zeitraffer
-  let t = 0, odo = 182340, fuel = 600, wear = 0.002, x = -20000 + Math.random() * 30000, z = -20000 + Math.random() * 30000;
+  // Echte Spielkoordinaten einiger Städte (ETS2) – die Demo fährt sichtbar über die Live-Map
+  const C = [['Hamburg', -29, -16502], ['Berlin', 11199, -10160], ['München', 3840, 14377], ['Wien', 21788, 14230], ['Prag', 14642, 3689], ['Frankfurt', -6057, 2536], ['Köln', -11704, -2743], ['Leipzig', 7444, -3592]];
+  const a = C[Math.floor(Math.random() * C.length)]; let b = a; while (b === a) b = C[Math.floor(Math.random() * C.length)];
+  const total = Math.hypot(b[1] - a[1], b[2] - a[2]) * 0.019; // Spieleinheiten -> km (Kartenmaßstab)
+  const ticks = 60; // Tour dauert ~25 s im Zeitraffer
+  let t = 0, odo = 182340, fuel = 600, wear = 0.002;
   const income = Math.round(total * 55 + 4000);
   return () => {
     t++;
-    const phase = t < 3 ? 'idle' : 'drive';
-    const remaining = Math.max(0, total - (odo - 182340));
-    if (phase === 'drive' && remaining > 0) {
-      const speed = 70 + Math.random() * 20;
-      odo += 1.6; fuel -= 0.55; x += 1500; z += 800 * Math.sin(t / 5);
+    const k = Math.min(1, Math.max(0, (t - 3) / ticks));
+    const x = a[1] + (b[1] - a[1]) * k, z = a[2] + (b[2] - a[2]) * k;
+    const remaining = total * (1 - k);
+    if (t >= 3 && k < 1) {
+      odo += total / ticks; fuel -= total / ticks * 0.33;
       if (Math.random() < 0.03) wear += 0.004;
-      return { game: { connected: true, paused: false, gameName: 'ETS2' }, truck: { make: 'Scania', model: 'S 730', speed, odometer: odo, fuel, fuelCapacity: 1400, wearEngine: 0.01, placement: { x, z } },
-        trailer: { attached: true, name: 'Maschinenteile', mass: 18200, wear }, job: { income, sourceCity: a[0], sourceCompany: a[1], destinationCity: b[0], destinationCompany: b[1] },
+      return { game: { connected: true, paused: false, gameName: 'ETS2' }, truck: { make: 'Scania', model: 'S 730', speed: 72 + Math.random() * 16, odometer: odo, fuel, fuelCapacity: 1400, wearEngine: 0.01, placement: { x, z } },
+        trailer: { attached: true, name: 'Maschinenteile', mass: 18200, wear }, job: { income, sourceCity: a[0], sourceCompany: 'Posped', destinationCity: b[0], destinationCompany: 'Tradeaux' },
         navigation: { estimatedDistance: remaining * 1000, estimatedTime: new Date(Date.parse('0001-01-01T00:00:00Z') + remaining * 45000).toISOString() } };
     }
-    if (remaining <= 0 && t > 3) { setTimeout(() => { log(`${C.c}Demo beendet.${C.r} Schau dir die Tour in Frachtwerk an!`); process.exit(0); }, 2500); }
+    if (k >= 1) { setTimeout(() => { log(`${C2.c}Demo beendet.${C2.r} Schau dir die Tour in Frachtwerk an!`); process.exit(0); }, 2500); }
     return { game: { connected: true, gameName: 'ETS2' }, truck: { make: 'Scania', model: 'S 730', speed: 0, odometer: odo, fuel, fuelCapacity: 1400, placement: { x, z } }, trailer: { attached: false }, job: { income: 0, destinationCity: '' }, navigation: {} };
   };
 }
+const C2 = C;
 
 // ---------------- Start ----------------
 (async () => {

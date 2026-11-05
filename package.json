@@ -9,7 +9,10 @@
     "start": "npm --prefix server start",
     "seed": "npm --prefix server run seed",
     "dev:server": "npm --prefix server run dev",
-    "dev:web": "npm --prefix web run dev"
+    "dev:web": "npm --prefix web run dev",
+    "simulate": "npm --prefix server run simulate"
   },
-  "engines": { "node": ">=22.13" }
+  "engines": {
+    "node": ">=22.13"
+  }
 }

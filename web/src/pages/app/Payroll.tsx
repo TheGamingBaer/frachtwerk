@@ -65,7 +65,7 @@ export default function Payroll() {
               <tbody>
                 {pv.rows.map((r: any) => (
                   <tr key={r.user_id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02]">
-                    <td className="px-5 py-3"><div className="flex items-center gap-3"><Avatar name={r.display_name} hue={r.avatar_hue} size={30} /><span className="font-medium text-white">{r.display_name}</span></div></td>
+                    <td className="px-5 py-3"><div className="flex items-center gap-3"><Avatar name={r.display_name} hue={r.avatar_hue} src={r.avatar_url} size={30} /><span className="font-medium text-white">{r.display_name}</span></div></td>
                     <td className="px-3 py-3 text-right font-mono text-zinc-300">{r.jobs}</td>
                     <td className="px-3 py-3 text-right font-mono text-zinc-300">{num(r.km)}</td>
                     <td className="px-3 py-3 text-right font-mono text-zinc-300">{eur(r.gross, 2)}</td>
@@ -125,7 +125,7 @@ export function PayslipView() {
         {p.items.map((it: any) => (
           <div key={it.id} className="border-b border-white/10 py-6 last:border-0">
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3"><Avatar name={it.display_name} hue={it.avatar_hue} size={38} /><div><div className="font-semibold text-white">{it.display_name}</div><div className="text-xs text-zinc-500">{it.jobs} Touren · {km(it.km)}</div></div></div>
+              <div className="flex items-center gap-3"><Avatar name={it.display_name} hue={it.avatar_hue} src={it.avatar_url} size={38} /><div><div className="font-semibold text-white">{it.display_name}</div><div className="text-xs text-zinc-500">{it.jobs} Touren · {km(it.km)}</div></div></div>
               <div className="text-right"><div className="label">Auszahlung</div><div className="font-display text-2xl font-bold text-white">{eur(it.net, 2)}</div></div>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3 font-mono text-sm sm:grid-cols-4">

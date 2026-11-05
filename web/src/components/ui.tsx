@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useInView, animate } from 'framer-motion';
 import clsx from 'clsx';
 import { X, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 
 export const cx = clsx;
 
@@ -102,12 +103,13 @@ export function Stat({ label, value, format, icon: Icon, delta, hint, accent = '
 }
 
 // ---------- Avatar ----------
-export function Avatar({ name = '?', hue = 28, size = 36, ring = false }: { name?: string; hue?: number; size?: number; ring?: boolean }) {
+export function Avatar({ name = '?', hue = 28, size = 36, ring = false, src }: { name?: string; hue?: number; size?: number; ring?: boolean; src?: string | null }) {
+  const [broken, setBroken] = useState(false);
   const initials = name.split(/\s+/).map((s) => s[0]).join('').slice(0, 2).toUpperCase();
   return (
-    <div className={cx('relative grid shrink-0 place-items-center rounded-full font-display font-semibold text-white', ring && 'ring-2 ring-ink-950')}
+    <div className={cx('relative grid shrink-0 place-items-center overflow-hidden rounded-full font-display font-semibold text-white', ring && 'ring-2 ring-ink-950')}
       style={{ width: size, height: size, fontSize: size * 0.38, background: `linear-gradient(135deg, hsl(${hue} 85% 58%), hsl(${(hue + 40) % 360} 80% 38%))` }}>
-      {initials}
+      {src && !broken ? <img src={src} alt="" loading="lazy" onError={() => setBroken(true)} className="h-full w-full object-cover" /> : initials}
     </div>
   );
 }
@@ -185,7 +187,7 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
     const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k);
   }, [open, onClose]);
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -200,7 +202,8 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 

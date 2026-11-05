@@ -63,7 +63,7 @@ export default function CompanyPublic() {
           <div className="divide-y divide-white/[0.05] px-2 pb-2">
             {c.members.map((m: any) => (
               <Link key={m.id} to={`/driver/${m.username}`} className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-white/[0.03]">
-                <Avatar name={m.display_name} hue={m.avatar_hue} size={36} />
+                <Avatar name={m.display_name} hue={m.avatar_hue} src={m.avatar_url} size={36} />
                 <div className="min-w-0 flex-1"><div className="flex items-center gap-2 text-sm font-medium text-white">{m.display_name}{m.role === 'owner' && <Crown className="h-3.5 w-3.5 text-amber-400" />}</div><div className="text-xs text-zinc-500">{m.rank_title} · {ROLE_LABEL[m.role]}</div></div>
                 <div className="font-mono text-sm text-zinc-300">{km(m.km)}</div>
               </Link>

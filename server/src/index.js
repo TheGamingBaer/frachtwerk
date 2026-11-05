@@ -2,11 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const compression = require('compression');
 const { api } = require('./api');
+const { discordRouter } = require('./discord');
 
 const app = express();
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
+app.use(compression({ filter: (req, res) => !req.path.includes('stream') && compression.filter(req, res) }));
 app.use(cors());
 app.use(express.json({ limit: '200kb' }));
 app.use((req, res, next) => {
@@ -16,6 +19,7 @@ app.use((req, res, next) => {
 });
 
 app.get('/api/health', (req, res) => res.json({ ok: true, name: 'Frachtwerk', time: new Date().toISOString() }));
+app.use('/api/auth', discordRouter);
 app.use('/api', api);
 app.use('/api', (req, res) => res.status(404).json({ error: 'Unbekannter Endpunkt' }));
 

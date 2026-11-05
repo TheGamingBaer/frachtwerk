@@ -6,11 +6,15 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "seed": "node src/seed.js"
+    "seed": "node src/seed.js",
+    "simulate": "node scripts/simulate.js"
   },
-  "engines": { "node": ">=22.13" },
+  "engines": {
+    "node": ">=22.13"
+  },
   "dependencies": {
     "bcryptjs": "^3.0.2",
+    "compression": "^1.8.2",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2"

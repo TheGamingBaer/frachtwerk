@@ -12,7 +12,7 @@ export function PublicNav() {
     const f = () => setScrolled(window.scrollY > 10);
     f(); window.addEventListener('scroll', f); return () => window.removeEventListener('scroll', f);
   }, []);
-  const links = [['/#features', 'Features'], ['/#abrechnung', 'Abrechnung'], ['/#so-gehts', "So geht's"], ['/companies', 'Firmen'], ['/#faq', 'FAQ']];
+  const links = [['/#features', 'Features'], ['/#abrechnung', 'Abrechnung'], ['/map', 'Live-Map'], ['/companies', 'Firmen'], ['/#faq', 'FAQ']];
   return (
     <header className={cx('fixed inset-x-0 top-0 z-40 transition-all duration-300', scrolled ? 'py-2' : 'py-4')}>
       <div className={cx('mx-auto flex max-w-6xl items-center justify-between rounded-2xl px-4 transition-all duration-300 sm:px-5',

@@ -18,7 +18,7 @@ export default function DriverPublic() {
         <div className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full blur-[90px]" style={{ background: `hsl(${u.avatar_hue} 90% 50% / .3)` }} />
         <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
           <div className="relative">
-            <Avatar name={u.display_name} hue={u.avatar_hue} size={104} />
+            <Avatar name={u.display_name} hue={u.avatar_hue} src={u.avatar_url} size={104} />
             <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-b from-amber-300 to-amber-500 px-2.5 py-0.5 font-mono text-xs font-bold whitespace-nowrap text-ink-950 shadow-glow">LV {d.level.level}</span>
           </div>
           <div className="flex-1">

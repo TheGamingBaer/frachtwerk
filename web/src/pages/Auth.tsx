@@ -3,8 +3,39 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Route, Receipt, Trophy, PlayCircle } from 'lucide-react';
 import { api } from '../lib/api';
+import { useApi } from '../lib/auth';
+import { DiscordIcon } from '../components/icons';
 import { useAuth } from '../lib/auth';
 import { Button, Field, Input, Logo } from '../components/ui';
+
+function DiscordButton({ label, next }: { label: string; next?: string }) {
+  const { data } = useApi<{ discord: boolean }>('/auth/providers');
+  if (!data?.discord) return null;
+  return (
+    <>
+      <a href={`/api/auth/discord${next ? `?next=${encodeURIComponent(next)}` : ''}`}
+        className="group relative flex h-12 w-full items-center justify-center gap-3 overflow-hidden rounded-xl bg-[#5865F2] font-semibold text-white shadow-[0_10px_40px_-10px_rgba(88,101,242,.8)] transition hover:brightness-110 active:scale-[.98]">
+        <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+        <DiscordIcon /> {label}
+      </a>
+      <div className="my-6 flex items-center gap-3 text-xs text-zinc-600"><span className="h-px flex-1 bg-white/10" />oder mit E-Mail<span className="h-px flex-1 bg-white/10" /></div>
+    </>
+  );
+}
+
+/** Ziel des Discord-Logins: Token aus dem URL-Fragment übernehmen */
+export function AuthCallback() {
+  const { login } = useAuth();
+  const nav = useNavigate();
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.hash.slice(1));
+    const t = p.get('token');
+    history.replaceState(null, '', window.location.pathname);
+    if (!t) { nav('/login'); return; }
+    login(t).then(() => nav(p.get('next') || '/app', { replace: true }));
+  }, []);
+  return <div className="grid min-h-screen place-items-center bg-ink-950"><div className="flex items-center gap-3 text-zinc-400"><span className="h-5 w-5 animate-spin rounded-full border-2 border-[#5865F2]/30 border-t-[#5865F2]" />Anmeldung mit Discord…</div></div>;
+}
 
 function Shell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
@@ -45,7 +76,7 @@ export function Login() {
   const nav = useNavigate();
   const [sp] = useSearchParams();
   const [f, setF] = useState({ login: '', password: '' });
-  const [err, setErr] = useState('');
+  const [err, setErr] = useState(sp.get('error') || '');
   const [busy, setBusy] = useState(false);
   const next = sp.get('next') || '/app';
   useEffect(() => { if (me) nav(next, { replace: true }); }, [me]);
@@ -66,6 +97,7 @@ export function Login() {
           <Button className="mt-3 w-full" loading={busy} onClick={() => go({ login: 'demo', password: 'demo1234' })}><PlayCircle className="h-4 w-4" /> Als Demo-Inhaber einloggen</Button>
         </div>
       )}
+      <DiscordButton label="Mit Discord anmelden" next={sp.get('next') || undefined} />
       <form onSubmit={submit} className="space-y-4">
         <Field label="Benutzername oder E-Mail"><Input autoFocus value={f.login} onChange={(e) => setF({ ...f, login: e.target.value })} autoComplete="username" /></Field>
         <Field label="Passwort"><Input type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} autoComplete="current-password" /></Field>
@@ -91,6 +123,7 @@ export function Register() {
   const strength = Math.min(4, [/.{8,}/, /[A-Z]/, /[0-9]/, /[^A-Za-z0-9]/].filter((r) => r.test(f.password)).length);
   return (
     <Shell title="Konto erstellen" subtitle="Kostenlos, in 30 Sekunden. Danach Firma gründen oder beitreten.">
+      <DiscordButton label="Mit Discord registrieren" />
       <form onSubmit={submit} className="space-y-4">
         <Field label="Benutzername" hint="Wird in Ranglisten und deinem Profil angezeigt."><Input autoFocus value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} autoComplete="username" placeholder="z. B. MaxDrive" /></Field>
         <Field label="E-Mail"><Input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} autoComplete="email" /></Field>

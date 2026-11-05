@@ -111,7 +111,7 @@ export default function Dashboard() {
               <div className="space-y-4 px-5 pb-5">
                 {d.news.length ? d.news.map((n: any) => (
                   <div key={n.id} className="flex gap-3">
-                    <Avatar name={n.author || '?'} hue={n.avatar_hue} size={30} />
+                    <Avatar name={n.author || '?'} hue={n.avatar_hue} src={n.avatar_url} size={30} />
                     <div className="min-w-0"><div className="flex items-center gap-1.5 text-sm font-medium text-white">{n.pinned ? <Pin className="h-3 w-3 text-amber-400" /> : null}{n.title}</div><p className="mt-0.5 line-clamp-2 text-xs text-zinc-400">{n.body}</p><div className="mt-1 text-[11px] text-zinc-600">{n.author} · {ago(n.created_at)}</div></div>
                   </div>
                 )) : <p className="text-sm text-zinc-500">Noch keine Neuigkeiten.</p>}
