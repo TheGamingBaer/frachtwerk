@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Wallet, Plus, ArrowDownLeft, ArrowUpRight, Fuel, Gift, Receipt, Landmark } from 'lucide-react';
+import { Wallet, Plus, ArrowDownLeft, ArrowUpRight, Fuel, Gift, Receipt, Landmark, Wrench } from 'lucide-react';
 import { useApi, useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
 import { Button, Card, CardHeader, Field, Input, Modal, PageHeader, PageLoader, Select, Tabs, useToast, cx } from '../../components/ui';
@@ -9,7 +9,7 @@ import { can, dateTime, eur, monthName } from '../../lib/format';
 const TYPE: Record<string, [string, any, string]> = {
   income: ['Frachterlös', ArrowDownLeft, 'text-emerald-400 bg-emerald-500/10'], payout: ['Lohnauszahlung', Receipt, 'text-cyan-300 bg-cyan-500/10'],
   fuel: ['Kraftstoff', Fuel, 'text-amber-300 bg-amber-500/10'], expense: ['Ausgabe', ArrowUpRight, 'text-rose-300 bg-rose-500/10'],
-  deposit: ['Einzahlung', Landmark, 'text-emerald-300 bg-emerald-500/10'], bonus: ['Prämie', Gift, 'text-violet-300 bg-violet-500/10'],
+  deposit: ['Einzahlung', Landmark, 'text-emerald-300 bg-emerald-500/10'], damage: ['Frachtschaden', ArrowUpRight, 'text-rose-300 bg-rose-500/10'], repair: ['Werkstatt', Wrench, 'text-orange-300 bg-orange-500/10'], bonus: ['Prämie', Gift, 'text-violet-300 bg-violet-500/10'],
 };
 
 export default function Finance() {
@@ -70,7 +70,7 @@ export default function Finance() {
 
       <Modal open={open} onClose={() => setOpen(false)} title="Neue Buchung">
         <div className="space-y-4">
-          <Field label="Art"><Select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value="expense">Ausgabe (z. B. Werkstatt, Server)</option><option value="deposit">Einzahlung</option><option value="bonus">Prämie an Fahrer</option></Select></Field>
+          <Field label="Art"><Select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}><option value="expense">Ausgabe (z. B. Server, Event)</option><option value="bonus">Prämie an Fahrer</option></Select></Field>
           {f.type === 'bonus' && <Field label="Fahrer"><Select value={f.user_id} onChange={(e) => setF({ ...f, user_id: e.target.value })}><option value="">Bitte wählen</option>{c?.members.map((m: any) => <option key={m.id} value={m.id}>{m.display_name}</option>)}</Select></Field>}
           <Field label="Betrag (€)"><Input type="number" min={0} value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></Field>
           <Field label="Beschreibung"><Input value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>

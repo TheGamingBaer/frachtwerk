@@ -83,6 +83,7 @@ export default function CompanySettings() {
               <Field label="Strafe bei Überschreitung (€)"><Input type="number" value={c.speeding_penalty} onChange={set('speeding_penalty')} /></Field>
               <Field label="Kraftstoffpreis (€/l)"><Input type="number" step="0.01" value={c.fuel_price} onChange={set('fuel_price')} /></Field>
               <Field label="Mindeststrecke Auto-Freigabe (km)"><Input type="number" value={c.min_distance} onChange={set('min_distance')} /></Field>
+              <Field label="Werkstattkosten je % LKW-Schaden (€)" hint="Zahlt die Firma – wird pro Tour vom Firmenkonto abgebucht."><Input type="number" value={c.repair_rate ?? 350} onChange={set('repair_rate')} /></Field>
               <div className="space-y-2 sm:col-span-2">
                 <Toggle checked={!!c.company_pays_fuel} onChange={(v) => setC({ ...c, company_pays_fuel: v ? 1 : 0 })} label="Firma zahlt den Kraftstoff" desc="Sonst wird der Verbrauch vom Fahrerlohn abgezogen." />
                 <Toggle checked={!!c.auto_approve} onChange={(v) => setC({ ...c, auto_approve: v ? 1 : 0 })} label="Client-Touren automatisch freigeben" desc="Manuell eingereichte Touren werden immer von der Disposition geprüft." />
@@ -134,7 +135,7 @@ export default function CompanySettings() {
                 {pv!.lines.map(([l, v]) => <div key={l} className="flex justify-between"><span className="font-sans text-zinc-400">{l}</span><span className={v < 0 ? 'text-rose-300' : l.includes('Bonus') ? 'text-emerald-300' : 'text-zinc-200'}>{eur(v, 2)}</span></div>)}
                 <div className="mt-2 flex items-end justify-between border-t border-white/10 pt-3"><span className="font-sans text-zinc-400">Fahrerlohn</span><span className="font-display text-2xl font-bold text-gradient">{eur(pv!.total, 2)}</span></div>
               </div>
-              <p className="mt-3 text-xs text-zinc-500">Firma behält: <span className="font-mono text-zinc-300">{eur(sample.income - (c.company_pays_fuel ? sample.fuel * Number(c.fuel_price) : 0), 0)}</span> Erlös (abzgl. Kraftstoff) · Marge {num(sample.income ? (1 - pv!.total / sample.income) * 100 : 0, 0)} %</p>
+              <p className="mt-3 text-xs text-zinc-500">Firma behält: <span className="font-mono text-zinc-300">{eur(sample.income * (1 - sample.damage / 100) - (c.company_pays_fuel ? sample.fuel * Number(c.fuel_price) : 0) - pv!.total, 0)}</span> nach Lohn, Frachtschaden & Kraftstoff · Marge {num(sample.income ? (1 - pv!.total / sample.income) * 100 : 0, 0)} %</p>
             </div>
           </Card>
         </div>
@@ -151,6 +152,6 @@ export default function CompanySettings() {
 
 function numify(c: any) {
   const out = { ...c };
-  for (const k of ['rate_per_km', 'revenue_share', 'fuel_price', 'damage_penalty', 'clean_bonus', 'max_speed_limit', 'speeding_penalty', 'min_distance', 'hue']) out[k] = Number(c[k]) || 0;
+  for (const k of ['repair_rate', 'rate_per_km', 'revenue_share', 'fuel_price', 'damage_penalty', 'clean_bonus', 'max_speed_limit', 'speeding_penalty', 'min_distance', 'hue']) out[k] = Number(c[k]) || 0;
   return out;
 }

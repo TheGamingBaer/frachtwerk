@@ -151,9 +151,8 @@ api.post('/companies', auth, wrap((req, res) => {
   const id = tx(() => {
     const r = run(`INSERT INTO companies (name,tag,slug,description,hue,games,join_mode,invite_code,owner_id,balance) VALUES (?,?,?,?,?,?,?,?,?,?)`,
       name, tag, slug, str(req.body.description, 1000), Math.round(num(req.body.hue, 28)) % 360, ['ets2', 'ats', 'both'].includes(req.body.games) ? req.body.games : 'ets2',
-      ['open', 'apply', 'invite'].includes(req.body.join_mode) ? req.body.join_mode : 'apply', inviteCode(), req.user.id, 250000);
+      ['open', 'apply', 'invite'].includes(req.body.join_mode) ? req.body.join_mode : 'apply', inviteCode(), req.user.id, 0); // jede Firma startet bei 0 €
     run(`INSERT INTO memberships (user_id,company_id,role,rank_title) VALUES (?,?, 'owner','Geschäftsführer')`, req.user.id, r.lastInsertRowid);
-    run(`INSERT INTO transactions (company_id,type,amount,description) VALUES (?, 'deposit', 250000, 'Startkapital')`, r.lastInsertRowid);
     run(`DELETE FROM applications WHERE user_id=? AND status='pending'`, req.user.id);
     return r.lastInsertRowid;
   });
@@ -223,6 +222,7 @@ api.patch('/company', auth, role('admin'), wrap((req, res) => {
     pick('company_pays_fuel', (v) => (v ? 1 : 0)), pick('damage_penalty', (v) => Math.max(0, num(v))), pick('clean_bonus', (v) => Math.max(0, num(v))),
     pick('max_speed_limit', (v) => Math.max(0, Math.round(num(v)))), pick('speeding_penalty', (v) => Math.max(0, num(v))), pick('auto_approve', (v) => (v ? 1 : 0)),
     pick('min_distance', (v) => Math.max(0, Math.round(num(v)))), c.id);
+  if (b.repair_rate !== undefined) run('UPDATE companies SET repair_rate=? WHERE id=?', Math.max(0, num(b.repair_rate)), c.id);
   if (b.discord_webhook !== undefined) {
     const url = str(b.discord_webhook, 300);
     if (url && !validWebhook(url)) return bad(res, 'Ungültige Discord-Webhook-URL');
@@ -327,10 +327,10 @@ api.get('/company/transactions', auth, role('dispatcher'), wrap((req, res) => {
 }));
 
 api.post('/company/transactions', auth, role('admin'), wrap((req, res) => {
-  const type = ['expense', 'deposit', 'bonus'].includes(req.body.type) ? req.body.type : null;
+  const type = ['expense', 'bonus'].includes(req.body.type) ? req.body.type : null; // kein Geld aus dem Nichts
   const amount = Math.abs(num(req.body.amount));
   if (!type || !amount) return bad(res, 'Typ und Betrag angeben');
-  const signed = type === 'deposit' ? amount : -amount;
+  const signed = -amount;
   let uid = null;
   if (type === 'bonus') {
     uid = num(req.body.user_id) || null;

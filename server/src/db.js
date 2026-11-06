@@ -203,6 +203,7 @@ addColumn('users', 'banned', 'INTEGER DEFAULT 0');
 addColumn('users', 'reset_hash', 'TEXT');
 addColumn('users', 'reset_expires', 'INTEGER');
 addColumn('users', 'last_seen', 'TEXT');
+addColumn('companies', 'repair_rate', 'REAL DEFAULT 350');   // € je % LKW-Schaden (Werkstatt)
 addColumn('companies', 'discord_webhook', "TEXT DEFAULT ''");
 addColumn('companies', 'webhook_events', "TEXT DEFAULT 'delivery,payroll,application,member,event,news'");
 module.exports.DB_PATH = DB_PATH;

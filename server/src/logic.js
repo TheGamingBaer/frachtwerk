@@ -99,6 +99,11 @@ function approveJob(job, company) {
     run(`INSERT INTO transactions (company_id,user_id,job_id,type,amount,description) VALUES (?,?,?,?,?,?)`,
       company.id, job.user_id, job.id, 'income', job.income, `Fracht: ${job.cargo || '?'} · ${job.origin_city} → ${job.dest_city}`);
     let delta = job.income;
+    const book = (type, amount, text) => { run(`INSERT INTO transactions (company_id,user_id,job_id,type,amount,description) VALUES (?,?,?,?,?,?)`, company.id, job.user_id, job.id, type, -amount, text); delta -= amount; };
+    // Frachtschaden mindert den Erlös (wie im Spiel)
+    if (job.damage > 0) book('damage', r2(job.income * Math.min(100, job.damage) / 100), `Frachtschaden ${job.damage.toFixed(1).replace('.', ',')} %`);
+    // Werkstatt für LKW-Schaden
+    if (job.truck_damage > 0 && company.repair_rate > 0) book('repair', r2(job.truck_damage * company.repair_rate), `Werkstatt (LKW-Schaden ${job.truck_damage.toFixed(1).replace('.', ',')} %)`);
     if (company.company_pays_fuel && job.fuel_used > 0) {
       const fuel = r2(job.fuel_used * company.fuel_price);
       run(`INSERT INTO transactions (company_id,user_id,job_id,type,amount,description) VALUES (?,?,?,?,?,?)`,

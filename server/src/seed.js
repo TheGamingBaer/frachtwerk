@@ -27,8 +27,7 @@ tx(() => {
 
   const mk = (name, tag, slug, hue, desc, owner, mode) => {
     const id = run(`INSERT INTO companies (name,tag,slug,description,hue,join_mode,invite_code,owner_id,balance,discord) VALUES (?,?,?,?,?,?,?,?,?,?)`,
-      name, tag, slug, desc, hue, mode, Math.random().toString(16).slice(2, 10).toUpperCase(), owner, 250000, 'https://discord.gg/').lastInsertRowid;
-    run(`INSERT INTO transactions (company_id,type,amount,description,created_at) VALUES (?, 'deposit', 250000, 'Startkapital', datetime('now','-62 days'))`, id);
+      name, tag, slug, desc, hue, mode, Math.random().toString(16).slice(2, 10).toUpperCase(), owner, 0, 'https://discord.gg/').lastInsertRowid;
     return id;
   };
   const c1 = mk('Nordlicht Logistik', 'NLX', 'nordlicht-logistik', 28, 'Seriöse Spedition mit Herz. Wöchentliche Konvois, faire Abrechnung, aktive Community. Wir fahren schwer, weit und sauber.', ids[0], 'apply');
@@ -51,7 +50,7 @@ tx(() => {
         const [cg, mass] = pick(cargo);
         const from = pick(cities); let to = pick(cities); while (to === from) to = pick(cities);
         const km = Math.round(180 + Math.random() * 1300);
-        const dmg = Math.random() < 0.55 ? 0 : Math.round(Math.random() * 60) / 10;
+        const dmg = Math.random() < 0.55 ? 0 : Math.round(Math.random() * 60) / 10; const tdmg = Math.random() < 0.6 ? 0 : Math.round(Math.random() * 40) / 10;
         const income = Math.round(km * (38 + Math.random() * 30) + mass * 120);
         const cid = i < 5 ? c1 : c2;
         const h = Math.floor(Math.random() * 20);
@@ -61,7 +60,7 @@ tx(() => {
           Math.round(km * (0.29 + Math.random() * 0.1)), dmg, 82 + Math.round(Math.random() * 18), 62 + Math.round(Math.random() * 12),
           `-${d} days`, `-${d} days`).lastInsertRowid;
         run(`UPDATE jobs SET started_at=datetime(started_at, ?), finished_at=datetime(finished_at, ?) WHERE id=?`, `-${h + 10} hours`, `-${h} hours`, r);
-        finalizeJob(r);
+        run('UPDATE jobs SET truck_damage=? WHERE id=?', tdmg, r); finalizeJob(r);
         // ältere Touren mit der Transaktion zeitlich passend datieren
         run(`UPDATE transactions SET created_at=(SELECT finished_at FROM jobs WHERE id=?) WHERE job_id=?`, r, r);
       }
@@ -88,7 +87,11 @@ tx(() => {
 
   // Fuhrpark, Events, News
   const fleet = [['Scania', 'S 730 V8', 'NLX-001', ids[0], 182340], ['Volvo', 'FH16 750', 'NLX-002', ids[1], 98211], ['MAN', 'TGX 18.640', 'NLX-003', ids[2], 143902], ['DAF', 'XG+ 530', 'NLX-004', ids[3], 61204]];
-  fleet.forEach(([b, m, p, u, o]) => run('INSERT INTO trucks (company_id,brand,model,plate,assigned_user,odometer,value) VALUES (?,?,?,?,?,?,?)', c1, b, m, p, u, o, 165000));
+  fleet.forEach(([b, m, p, u, o]) => {
+    run('INSERT INTO trucks (company_id,brand,model,plate,assigned_user,odometer,value) VALUES (?,?,?,?,?,?,?)', c1, b, m, p, u, o, 165000);
+    run(`INSERT INTO transactions (company_id,type,amount,description,created_at) VALUES (?, 'expense', -165000, ?, datetime('now','-20 days'))`, c1, `Fahrzeugkauf ${b} ${m}`);
+    run('UPDATE companies SET balance=balance-165000 WHERE id=?', c1);
+  });
   run(`INSERT INTO events (company_id,title,description,start_at,origin,destination,server,created_by) VALUES (?,?,?,datetime('now','+2 days','start of day','+19 hours'),?,?,?,?)`,
     c1, 'Freitagskonvoi: Nordkap-Tour', 'Treffpunkt 18:45 am Rastplatz. Bitte mit eigenem Trailer und vollem Tank. Funk über Discord.', 'Hamburg', 'Kopenhagen', 'TruckersMP Simulation 1', ids[1]);
   run(`INSERT INTO events (company_id,title,description,start_at,origin,destination,server,created_by) VALUES (?,?,?,datetime('now','+9 days','start of day','+20 hours'),?,?,?,?)`,
