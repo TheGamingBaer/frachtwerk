@@ -73,7 +73,7 @@ export default function Onboarding() {
                 <Field label="Aufnahme"><Select value={f.join_mode} onChange={(e) => setF({ ...f, join_mode: e.target.value })}><option value="open">Offen – jeder kann beitreten</option><option value="apply">Per Bewerbung</option><option value="invite">Nur mit Einladungscode</option></Select></Field>
               </div>
               <Button className="mt-6 w-full" size="lg" loading={busy} onClick={create} disabled={f.name.length < 3 || f.tag.length < 2}>Spedition gründen <ArrowRight className="h-4 w-4" /></Button>
-              <p className="mt-3 text-center text-xs text-zinc-500">Deine Firma startet mit 250.000 € Startkapital. Lohnformel kannst du danach einstellen.</p>
+              <p className="mt-3 text-center text-xs text-zinc-500">Gründen ist komplett kostenlos – echtes Geld fließt nie. Deine Firma bekommt 250.000 € virtuelles Spielgeld als Startkapital.</p>
             </Card>
             <div>
               <div className="label mb-3">Vorschau</div>
