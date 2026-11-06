@@ -18,6 +18,7 @@ const PublicMap = lazy(() => import('./pages/PublicMap'));
 const Forgot = lazy(() => import('./pages/Reset').then((m) => ({ default: m.Forgot })));
 const Reset = lazy(() => import('./pages/Reset').then((m) => ({ default: m.Reset })));
 const Admin = lazy(() => import('./pages/app/Admin'));
+const Pair = lazy(() => import('./pages/app/Pair'));
 const Dashboard = lazy(() => import('./pages/app/Dashboard'));
 const Jobs = lazy(() => import('./pages/app/Jobs'));
 const Live = lazy(() => import('./pages/app/Live'));
@@ -41,7 +42,7 @@ function Protected({ children }: { children: ReactNode }) {
   const { me, loading } = useAuth();
   const loc = useLocation();
   if (loading) return <Splash />;
-  if (!me) return <Navigate to={`/login?next=${encodeURIComponent(loc.pathname)}`} replace />;
+  if (!me) return <Navigate to={`/login?next=${encodeURIComponent(loc.pathname + loc.search)}`} replace />;
   return <>{children}</>;
 }
 function NeedsCompany({ children }: { children: ReactNode }) {
@@ -98,6 +99,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="client" element={<ClientPage />} />
           <Route path="admin" element={<Admin />} />
+          <Route path="pair" element={<Pair />} />
           <Route path="payslip/:id" element={<PayslipView />} />
           <Route path="company" element={c(<CompanyHome />)} />
           <Route path="company/members" element={c(<Members />)} />

@@ -25,12 +25,14 @@ Ich wollte kein weiteres Tool mit Premium-Abo bauen, sondern eins, zu dem Firmen
 
 ## Sofort testen unter Windows (ohne Installation)
 
-1. **`Frachtwerk-Server.exe`** in einen eigenen Ordner legen und doppelklicken.
-   Beim ersten Start fragt es, ob Demo-Daten angelegt werden sollen (Login `demo` / `demo1234`, inkl. Live-Simulation). Der Browser öffnet sich mit `http://localhost:8080`.
-   Alle Daten liegen danach im Ordner `Frachtwerk-Daten` daneben (Datenbank, Backups, `einstellungen.env`).
-2. **`Frachtwerk-Client.exe`** daneben legen. Sie wird dann automatisch unter *Client & Token* zum Download angeboten.
-   Doppelklick → Server-Adresse und Token eingeben → fertig. Die Eingaben werden in `frachtwerk.json` neben der .exe gespeichert.
-3. Windows SmartScreen meldet die Programme evtl. als unbekannt („Weitere Informationen“ → „Trotzdem ausführen“), weil sie nicht kostenpflichtig signiert sind.
+1. **`Frachtwerk-Server.exe`** und **`Frachtwerk-Client.exe`** in denselben Ordner legen, Server doppelklicken.
+   Fragen: *Demo-Daten?* → `j`, *Client auch starten?* → Enter. Der Browser öffnet sich mit dem Demo-Login.
+2. Der Client findet den Server von selbst und öffnet eine Seite mit einem Code → **„Verbinden“** klicken. Kein Token-Kopieren.
+3. Fehlt der Funbit Telemetry Server, lädt der Client ihn auf Nachfrage herunter und startet ihn. Dort einmalig **„Install“** klicken.
+4. ETS2 starten und fahren. Ab dann reicht ein Doppelklick auf den Server.
+
+Alle Daten liegen im Ordner `Frachtwerk-Daten` neben der Server-.exe (Datenbank, Backups, `einstellungen.env`).
+Windows SmartScreen meldet die Programme evtl. als unbekannt („Weitere Informationen“ → „Trotzdem ausführen“), weil sie nicht kostenpflichtig signiert sind.
 
 Startoptionen des Servers: `--demo` (Demo-Daten ohne Nachfrage), `--simulate`, `--no-simulate`, `--no-browser`.
 Damit andere über das Internet mitfahren können, braucht der Server eine öffentliche Adresse – siehe [Kostenlos hosten](#kostenlos-hosten).

@@ -579,6 +579,33 @@ api.get('/dashboard', auth, wrap((req, res) => {
 // =====================================================================
 // TELEMETRIE-CLIENT (Authentifizierung per API-Token "fw_…")
 // =====================================================================
+// ---------- Client-Kopplung: Client zeigt Code, Fahrer bestätigt im Browser ----------
+const pairs = new Map(); // secret -> { code, created, token, user }
+const PAIR_TTL = 10 * 60_000;
+const pairCode = () => Array.from(crypto.randomBytes(6), (b) => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[b % 32]).join('');
+setInterval(() => { for (const [k, p] of pairs) if (Date.now() - p.created > PAIR_TTL) pairs.delete(k); }, 60_000).unref();
+
+api.post('/client/pair/start', limit(20, 60_000), wrap((req, res) => {
+  if (pairs.size > 500) return bad(res, 'Zu viele offene Kopplungen', 429);
+  const secret = crypto.randomBytes(24).toString('base64url'); const code = pairCode();
+  pairs.set(secret, { code, created: Date.now(), token: null });
+  res.json({ code, secret, expires_in: PAIR_TTL / 1000 });
+}));
+api.get('/client/pair/poll', wrap((req, res) => {
+  const p = pairs.get(String(req.query.secret || ''));
+  if (!p) return bad(res, 'Kopplung abgelaufen', 404);
+  if (!p.token) return res.json({ status: 'pending' });
+  pairs.delete(String(req.query.secret));
+  res.json({ status: 'done', token: p.token, user: p.user });
+}));
+api.post('/client/pair/confirm', auth, wrap((req, res) => {
+  const code = str(req.body.code, 12).toUpperCase();
+  const p = [...pairs.values()].find((x) => x.code === code && !x.token && Date.now() - x.created < PAIR_TTL);
+  if (!p) return bad(res, 'Code ungültig oder abgelaufen – starte den Client neu', 404);
+  p.token = req.user.api_token; p.user = req.user.display_name;
+  res.json({ ok: true });
+}));
+
 api.get('/client/ping', auth, wrap((req, res) => {
   res.json({ ok: true, user: req.user.display_name, company: req.member?.company_name || null });
 }));

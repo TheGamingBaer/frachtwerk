@@ -61,19 +61,119 @@ const C = { r: '\x1b[0m', d: '\x1b[2m', o: '\x1b[38;5;214m', g: '\x1b[32m', c: '
 const log = (...m) => console.log(`${C.d}${new Date().toLocaleTimeString('de-DE')}${C.r}`, ...m);
 
 /** Ersteinrichtung: fragt Server & Token ab und speichert sie in frachtwerk.json */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const openBrowser = (url) => {
+  const { exec } = require('child_process');
+  exec(process.platform === 'win32' ? `start "" "${url}"` : process.platform === 'darwin' ? `open "${url}"` : `xdg-open "${url}"`, () => {});
+};
+const saveCfg = (extra = {}) => {
+  let cur = {}; try { cur = JSON.parse(fs.readFileSync(cfgPath, 'utf8')); } catch {}
+  fs.writeFileSync(cfgPath, JSON.stringify({ ...cur, server: CFG.server, token: CFG.token, ...extra }, null, 2));
+};
+const reachable = async (url) => { try { return (await request(`${url}/api/health`)).ok; } catch { return false; } };
+
+/** Ersteinrichtung: Server finden, dann per Code im Browser koppeln (kein Token-Kopieren nötig) */
 async function setup() {
-  console.log(`\n${C.o}${C.b}  ▲ FRACHTWERK${C.r} ${C.d}Ersteinrichtung${C.r}\n`);
-  console.log('Deinen Token findest du in Frachtwerk unter „Client & Token“.\n');
-  const server = (await ask(`Server-Adresse [${CFG.server}]: `)) || CFG.server;
-  let token = '';
-  while (!/^fw_[\w-]{10,}$/.test(token)) {
-    token = await ask('API-Token (beginnt mit fw_): ');
-    if (!/^fw_[\w-]{10,}$/.test(token)) console.log(`${C.red}Das sieht nicht nach einem Token aus.${C.r}`);
+  console.log(`\n${C.o}${C.b}  ▲ FRACHTWERK${C.r} ${C.d}Einrichtung${C.r}\n`);
+  // 1) Server suchen: Konfiguration, dann lokaler Frachtwerk-Server, sonst fragen
+  let server = fileCfg.server || (arg('server') !== undefined ? CFG.server : null);
+  if (!server || !(await reachable(server))) {
+    for (const cand of ['http://localhost:8080', 'http://127.0.0.1:8080']) if (await reachable(cand)) { server = cand; break; }
   }
-  CFG.server = server.replace(/\/$/, ''); CFG.token = token;
-  fs.writeFileSync(cfgPath, JSON.stringify({ server: CFG.server, token: CFG.token }, null, 2));
-  doneAsking();
-  console.log(`${C.g}✔ Gespeichert in ${cfgPath}${C.r}`);
+  while (!server || !(await reachable(server))) {
+    if (server) console.log(`${C.red}Unter ${server} läuft kein Frachtwerk.${C.r}`);
+    const a = await ask('Adresse deines Frachtwerk-Servers (z. B. https://frachtwerk.meine-firma.de): ');
+    server = a ? (/^https?:\/\//.test(a) ? a : `https://${a}`).replace(/\/$/, '') : null;
+  }
+  CFG.server = server.replace(/\/$/, '');
+  log(`${C.g}✔ Server gefunden:${C.r} ${CFG.server}`);
+
+  // 2) Koppeln
+  const p = await send('/client/pair/start', {}).catch(() => null);
+  if (!p) return manualToken();
+  const url = `${CFG.server}/app/pair?code=${p.code}`;
+  console.log(`\n  Dein Code:  ${C.o}${C.b}${p.code.split('').join(' ')}${C.r}\n`);
+  console.log(`  Ich öffne jetzt deinen Browser. Melde dich an und klicke auf ${C.b}„Verbinden“${C.r}.`);
+  console.log(`  ${C.d}Falls sich nichts öffnet: ${url}${C.r}\n`);
+  openBrowser(url);
+  const until = Date.now() + p.expires_in * 1000;
+  while (Date.now() < until) {
+    await sleep(2000);
+    try {
+      const r = await request(`${CFG.server}/api/client/pair/poll?secret=${encodeURIComponent(p.secret)}`);
+      const d = r.json();
+      if (d.status === 'done') { CFG.token = d.token; saveCfg(); log(`${C.g}✔ Verbunden mit dem Konto ${C.b}${d.user}${C.r}`); return; }
+      if (!r.ok) break;
+    } catch {}
+  }
+  console.log(`${C.red}Die Kopplung ist abgelaufen.${C.r}`);
+  return manualToken();
+}
+
+async function manualToken() {
+  console.log('Alternativ: Token aus Frachtwerk → „Client & Token“ hier einfügen.');
+  for (let i = 0; i < 3; i++) {
+    const token = await ask('API-Token (beginnt mit fw_): ');
+    if (/^fw_[\w-]{10,}$/.test(token)) { CFG.token = token; saveCfg(); return; }
+    console.log(`${C.red}Das sieht nicht nach einem Token aus.${C.r}`);
+  }
+  return fatal('Einrichtung abgebrochen. Starte den Client einfach neu.');
+}
+
+// ---------------- Funbit Telemetry Server automatisch einrichten (Windows) ----------------
+const FUNBIT_ZIP = 'https://github.com/Funbit/ets2-telemetry-server/archive/refs/heads/master.zip';
+const FUNBIT_DIR = path.join(process.env.LOCALAPPDATA || BASE, 'Frachtwerk', 'funbit');
+function findFunbit() {
+  const cands = [fileCfg.funbit, path.join(FUNBIT_DIR, 'ets2-telemetry-server-master', 'server', 'Ets2Telemetry.exe')].filter(Boolean);
+  return cands.find((p) => { try { return fs.existsSync(p); } catch { return false; } }) || null;
+}
+function download(url, dest, hops = 0) {
+  return new Promise((resolve, reject) => {
+    if (hops > 5) return reject(new Error('Zu viele Weiterleitungen'));
+    require('https').get(url, { headers: { 'User-Agent': 'Frachtwerk-Client' } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) { res.resume(); return resolve(download(new URL(res.headers.location, url).toString(), dest, hops + 1)); }
+      if (res.statusCode !== 200) { res.resume(); return reject(new Error(`HTTP ${res.statusCode}`)); }
+      const out = fs.createWriteStream(dest); res.pipe(out); out.on('finish', () => out.close(resolve)); out.on('error', reject);
+    }).on('error', reject);
+  });
+}
+function startFunbit(exe) {
+  const { spawn } = require('child_process');
+  try { spawn(exe, [], { cwd: path.dirname(exe), detached: true, stdio: 'ignore' }).unref(); return true; } catch { return false; }
+}
+const telemetryUp = async () => { try { return (await request(CFG.telemetry)).ok; } catch { return false; } };
+
+async function ensureFunbit() {
+  if (CFG.demo || process.platform !== 'win32' || (await telemetryUp())) return;
+  let exe = findFunbit();
+  if (!exe) {
+    console.log(`\n${C.o}Für die Spieldaten brauchst du einmalig den kostenlosen Funbit ETS2 Telemetry Server.${C.r}`);
+    const a = (await ask('Soll ich ihn jetzt herunterladen und starten? [J/n]: ')).toLowerCase();
+    if (a === 'n' || a === 'nein') return;
+    try {
+      fs.mkdirSync(FUNBIT_DIR, { recursive: true });
+      const zip = path.join(FUNBIT_DIR, 'funbit.zip');
+      log('Lade Funbit herunter …'); await download(FUNBIT_ZIP, zip);
+      const head = Buffer.alloc(2); const fd = fs.openSync(zip, 'r'); fs.readSync(fd, head, 0, 2, 0); fs.closeSync(fd);
+      if (head.toString() !== 'PK' || fs.statSync(zip).size < 500_000) throw new Error('Download unvollständig (Internet/Firewall?)');
+      log('Entpacke …');
+      const cp = require('child_process');
+      try { cp.execFileSync('powershell.exe', ['-NoProfile', '-Command', `Expand-Archive -LiteralPath '${zip}' -DestinationPath '${FUNBIT_DIR}' -Force`], { stdio: 'ignore' }); }
+      catch { cp.execFileSync('tar.exe', ['-xf', zip, '-C', FUNBIT_DIR], { stdio: 'ignore' }); } // Windows 10+ hat tar eingebaut
+      exe = findFunbit();
+      if (!exe) throw new Error('Ets2Telemetry.exe nicht im Archiv gefunden');
+      saveCfg({ funbit: exe });
+      console.log(`\n${C.o}${C.b}  Einmalig: Im Funbit-Fenster auf „Install“ klicken${C.r} (installiert das Plugin in ETS2/ATS).\n`);
+    } catch (e) {
+      console.log(`${C.red}Automatische Einrichtung fehlgeschlagen:${C.r} ${e.message}`);
+      console.log('Bitte manuell: https://github.com/Funbit/ets2-telemetry-server → herunterladen, Ets2Telemetry.exe starten, „Install“ klicken.');
+      openBrowser('https://github.com/Funbit/ets2-telemetry-server');
+      return;
+    }
+  }
+  log('Starte Funbit Telemetry Server …');
+  startFunbit(exe);
+  for (let i = 0; i < 15 && !(await telemetryUp()); i++) await sleep(1000);
 }
 
 // ---------------- API ----------------
@@ -235,13 +335,18 @@ const C2 = C;
 (async () => {
   if (!CFG.token || CFG.token === true) await setup();
   console.log(`\n${C.o}${C.b}  ▲ FRACHTWERK${C.r} ${C.d}Telemetrie-Client${C.r}\n`);
-  try {
-    const me = await send('/client/ping');
-    log(`Angemeldet als ${C.b}${me.user}${C.r}${me.company ? ` · ${me.company}` : ' · Freifahrer'}  ${C.d}(${CFG.server})${C.r}`);
-  } catch (e) {
-    const hint = /401|angemeldet/i.test(e.message) ? 'Der Token ist ungültig. Lösche frachtwerk.json neben dem Client und starte neu.' : `Ist der Server ${CFG.server} erreichbar?`;
-    return fatal(`${C.red}Verbindung zu Frachtwerk fehlgeschlagen:${C.r} ${e.message}\n${hint}`);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const me = await send('/client/ping');
+      log(`Angemeldet als ${C.b}${me.user}${C.r}${me.company ? ` · ${me.company}` : ' · Freifahrer'}  ${C.d}(${CFG.server})${C.r}`);
+      break;
+    } catch (e) {
+      if (/401|angemeldet/i.test(e.message) && attempt === 0) { log(`${C.red}Der gespeicherte Token ist nicht mehr gültig – neu verbinden.${C.r}`); CFG.token = ''; await setup(); continue; }
+      return fatal(`${C.red}Verbindung zu Frachtwerk fehlgeschlagen:${C.r} ${e.message}\nIst der Server ${CFG.server} erreichbar? (Läuft Frachtwerk-Server.exe bzw. ist die Adresse richtig?)`);
+    }
   }
+  doneAsking();
+  await ensureFunbit();
   if (CFG.demo) {
     log(`${C.c}Demo-Modus: simuliere eine Tour im Zeitraffer…${C.r}`);
     const feed = demoFeed();
