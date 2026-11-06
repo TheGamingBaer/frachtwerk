@@ -16,12 +16,36 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const readline = require('readline');
+
+// Als Frachtwerk-Client.exe liegt die Konfiguration neben der .exe
+let isSea = false; try { isSea = require('node:sea').isSea(); } catch {}
+const BASE = isSea ? path.dirname(process.execPath) : __dirname;
+// Eingabe mit Zeilen-Warteschlange: funktioniert auch, wenn mehrere Zeilen auf einmal ankommen
+let rl = null; const lines = []; const waiting = [];
+const ask = (q) => new Promise((r) => {
+  if (!rl) {
+    let input; try { input = process.stdin; } catch { process.stdout.write(q + '\n'); return r(''); } // keine Eingabe verfügbar -> Standardwert
+    rl = readline.createInterface({ input, terminal: !!input.isTTY, output: process.stdout });
+    rl.on('line', (l) => (waiting.length ? waiting.shift()(l) : lines.push(l)));
+    rl.on('close', () => { while (waiting.length) waiting.shift()(''); });
+  }
+  process.stdout.write(q);
+  const done = (a) => r(String(a).trim());
+  lines.length ? done(lines.shift()) : waiting.push(done);
+});
+const doneAsking = () => { rl?.close(); rl = null; };
+async function fatal(msg) {
+  console.error(msg);
+  if (isSea || process.platform === 'win32') await ask('\nEnter drücken zum Beenden …');
+  process.exit(1);
+}
 
 // ---------------- Konfiguration ----------------
 const args = process.argv.slice(2);
 const arg = (name, def) => { const i = args.indexOf(`--${name}`); return i >= 0 ? (args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : true) : def; };
 let fileCfg = {};
-const cfgPath = path.join(__dirname, 'frachtwerk.json');
+const cfgPath = path.join(BASE, 'frachtwerk.json');
 if (fs.existsSync(cfgPath)) { try { fileCfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8')); } catch { console.warn('⚠ frachtwerk.json konnte nicht gelesen werden'); } }
 
 const CFG = {
@@ -31,24 +55,52 @@ const CFG = {
   interval: Number(arg('interval', fileCfg.interval || 1000)),
   demo: !!arg('demo', false),
 };
-const STATE_FILE = path.join(__dirname, '.frachtwerk-state.json');
+const STATE_FILE = path.join(BASE, '.frachtwerk-state.json');
 
 const C = { r: '\x1b[0m', d: '\x1b[2m', o: '\x1b[38;5;214m', g: '\x1b[32m', c: '\x1b[36m', red: '\x1b[31m', b: '\x1b[1m' };
 const log = (...m) => console.log(`${C.d}${new Date().toLocaleTimeString('de-DE')}${C.r}`, ...m);
 
-if (!CFG.token || CFG.token === true) {
-  console.error(`${C.red}Kein Token angegeben.${C.r} Deinen Token findest du in Frachtwerk unter „Client & Token".\n  node frachtwerk-client.js --server ${CFG.server} --token fw_…`);
-  process.exit(1);
+/** Ersteinrichtung: fragt Server & Token ab und speichert sie in frachtwerk.json */
+async function setup() {
+  console.log(`\n${C.o}${C.b}  ▲ FRACHTWERK${C.r} ${C.d}Ersteinrichtung${C.r}\n`);
+  console.log('Deinen Token findest du in Frachtwerk unter „Client & Token“.\n');
+  const server = (await ask(`Server-Adresse [${CFG.server}]: `)) || CFG.server;
+  let token = '';
+  while (!/^fw_[\w-]{10,}$/.test(token)) {
+    token = await ask('API-Token (beginnt mit fw_): ');
+    if (!/^fw_[\w-]{10,}$/.test(token)) console.log(`${C.red}Das sieht nicht nach einem Token aus.${C.r}`);
+  }
+  CFG.server = server.replace(/\/$/, ''); CFG.token = token;
+  fs.writeFileSync(cfgPath, JSON.stringify({ server: CFG.server, token: CFG.token }, null, 2));
+  doneAsking();
+  console.log(`${C.g}✔ Gespeichert in ${cfgPath}${C.r}`);
 }
 
 // ---------------- API ----------------
+// HTTP über die http-Module statt fetch: robuster (alte Windows-Versionen, Wine, Firmen-Netzwerke)
+function request(url, { method = 'GET', headers = {}, body } = {}) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const lib = u.protocol === 'https:' ? require('https') : require('http');
+    const req = lib.request(u, { method, headers: body ? { ...headers, 'Content-Length': Buffer.byteLength(body) } : headers, timeout: 15000 }, (res) => {
+      let data = ''; res.setEncoding('utf8');
+      res.on('data', (c) => (data += c));
+      res.on('end', () => resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, text: data, json: () => { try { return JSON.parse(data); } catch { return {}; } } }));
+    });
+    req.on('timeout', () => req.destroy(new Error('Zeitüberschreitung')));
+    req.on('error', reject);
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
 async function send(pathname, body) {
-  const res = await fetch(`${CFG.server}/api${pathname}`, {
+  const res = await request(`${CFG.server}/api${pathname}`, {
     method: body ? 'POST' : 'GET',
     headers: { Authorization: `Bearer ${CFG.token}`, 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
   });
-  const data = await res.json().catch(() => ({}));
+  const data = res.json();
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data;
 }
@@ -144,10 +196,10 @@ async function tick(d) {
 
 async function poll() {
   try {
-    const res = await fetch(CFG.telemetry);
-    await tick(await res.json());
+    const res = await request(CFG.telemetry);
+    await tick(res.json());
   } catch {
-    if (connected !== 'nosrv') log(`${C.red}Telemetry-Server nicht erreichbar${C.r} (${CFG.telemetry}) – läuft Ets2Telemetry.exe?`);
+    if (connected !== 'nosrv') log(`${C.red}Telemetry-Server nicht erreichbar${C.r} (${CFG.telemetry})\n         → Starte Ets2Telemetry.exe (Funbit) und klicke dort einmal auf „Install“. Ich versuche es weiter …`);
     connected = 'nosrv';
   }
 }
@@ -181,12 +233,14 @@ const C2 = C;
 
 // ---------------- Start ----------------
 (async () => {
+  if (!CFG.token || CFG.token === true) await setup();
   console.log(`\n${C.o}${C.b}  ▲ FRACHTWERK${C.r} ${C.d}Telemetrie-Client${C.r}\n`);
   try {
     const me = await send('/client/ping');
     log(`Angemeldet als ${C.b}${me.user}${C.r}${me.company ? ` · ${me.company}` : ' · Freifahrer'}  ${C.d}(${CFG.server})${C.r}`);
   } catch (e) {
-    console.error(`${C.red}Verbindung zu Frachtwerk fehlgeschlagen:${C.r} ${e.message}`); process.exit(1);
+    const hint = /401|angemeldet/i.test(e.message) ? 'Der Token ist ungültig. Lösche frachtwerk.json neben dem Client und starte neu.' : `Ist der Server ${CFG.server} erreichbar?`;
+    return fatal(`${C.red}Verbindung zu Frachtwerk fehlgeschlagen:${C.r} ${e.message}\n${hint}`);
   }
   if (CFG.demo) {
     log(`${C.c}Demo-Modus: simuliere eine Tour im Zeitraffer…${C.r}`);

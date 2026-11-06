@@ -3,3 +3,7 @@ web/dist/
 server/data/
 .frachtwerk-state.json
 client/frachtwerk.json
+dist-exe/
+packaging/.cache/
+packaging/node_modules/
+downloads/

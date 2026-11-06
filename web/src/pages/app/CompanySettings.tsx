@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Calculator, Save, Palette, Coins, Trash2 } from 'lucide-react';
+import { Calculator, Save, Palette, Coins, Trash2, Bell, Send, Check } from 'lucide-react';
+
+const HOOKS: [string, string][] = [['delivery', 'Abgelieferte Touren'], ['payroll', 'Abgeschlossene Lohnläufe'], ['application', 'Neue Bewerbungen'], ['member', 'Neue Mitglieder'], ['event', 'Neue Events & Konvois'], ['news', 'Firmen-News']];
 import { useApi, useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
 import { Button, Card, CardHeader, CompanyBadge, Field, Input, Modal, PageHeader, PageLoader, Select, Textarea, Toggle, useToast, cx } from '../../components/ui';
@@ -36,9 +38,13 @@ export default function CompanySettings() {
   if (!c) return <PageLoader />;
 
   const set = (k: string) => (e: any) => setC({ ...c, [k]: e.target.value });
+  const events: string[] = String(c.webhook_events || '').split(',').filter(Boolean);
+  const testHook = async () => {
+    try { await api('/company/webhook/test', { body: { url: c.discord_webhook } }); toast('Testnachricht gesendet – schau in euren Discord'); } catch (e: any) { toast(e.message, 'err'); }
+  };
   const save = async () => {
     setBusy(true);
-    try { await api('/company', { method: 'PATCH', body: numify(c) }); toast('Einstellungen gespeichert'); reload(); refresh(); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); }
+    try { await api('/company', { method: 'PATCH', body: { ...numify(c), webhook_events: events } }); toast('Einstellungen gespeichert'); reload(); refresh(); } catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); }
   };
   const dissolve = async () => {
     try { await api('/company', { method: 'DELETE', body: { confirm: confirmName } }); await refresh(); toast('Firma aufgelöst'); nav('/app'); } catch (e: any) { toast(e.message, 'err'); }
@@ -80,6 +86,29 @@ export default function CompanySettings() {
               <div className="space-y-2 sm:col-span-2">
                 <Toggle checked={!!c.company_pays_fuel} onChange={(v) => setC({ ...c, company_pays_fuel: v ? 1 : 0 })} label="Firma zahlt den Kraftstoff" desc="Sonst wird der Verbrauch vom Fahrerlohn abgezogen." />
                 <Toggle checked={!!c.auto_approve} onChange={(v) => setC({ ...c, auto_approve: v ? 1 : 0 })} label="Client-Touren automatisch freigeben" desc="Manuell eingereichte Touren werden immer von der Disposition geprüft." />
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader title="Discord-Benachrichtigungen" subtitle="Webhook für euren Discord-Kanal" icon={Bell} />
+            <div className="space-y-4 px-5 pb-5">
+              <Field label="Webhook-URL" hint="In Discord: Kanal bearbeiten → Integrationen → Webhooks → Neuer Webhook → URL kopieren">
+                <div className="flex gap-2">
+                  <Input value={c.discord_webhook || ''} onChange={set('discord_webhook')} placeholder="https://discord.com/api/webhooks/…" className="font-mono text-xs" />
+                  <Button variant="outline" onClick={testHook} disabled={!c.discord_webhook}><Send className="h-4 w-4" /> Test</Button>
+                </div>
+              </Field>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {HOOKS.map(([k, l]) => {
+                  const on = events.includes(k);
+                  return (
+                    <button key={k} type="button" onClick={() => setC({ ...c, webhook_events: (on ? events.filter((e: string) => e !== k) : [...events, k]).join(',') })}
+                      className={cx('flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-sm transition', on ? 'border-amber-500/30 bg-amber-500/[0.07] text-white' : 'border-white/[0.07] text-zinc-500 hover:text-zinc-300')}>
+                      <span className={cx('grid h-4 w-4 place-items-center rounded border', on ? 'border-amber-400 bg-amber-400' : 'border-white/20')}>{on && <Check className="h-3 w-3 text-ink-950" />}</span>{l}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </Card>

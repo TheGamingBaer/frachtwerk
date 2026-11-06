@@ -2,14 +2,13 @@
 //   node scripts/simulate.js [--server http://localhost:8080] [--drivers 6] [--speed 12]
 // --speed = simulierte km pro Sekunde (Zeitraffer)
 process.removeAllListeners('warning');
-const path = require('path');
 const { all } = require('../src/db');
-const geo = require(path.join(__dirname, '..', '..', 'web', 'public', 'geo', 'ets2.json'));
+const geo = require('../../web/public/geo/ets2.json');
 
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : d; };
-const SERVER = arg('server', 'http://localhost:8080');
-const N = Number(arg('drivers', 6));
-const KMPS = Number(arg('speed', 12));
+let SERVER = arg('server', 'http://localhost:8080');
+let N = Number(arg('drivers', 6));
+let KMPS = Number(arg('speed', 12));
 
 // Kartenkilometer -> Spielkoordinaten (Umkehrung von web/src/lib/gamegeo.ts)
 const R = 6370.997, DEG = Math.PI / 180;
@@ -22,8 +21,25 @@ const UK = new Set(['London', 'Dover', 'Birmingham', 'Manchester', 'Liverpool', 
 const cities = geo.cities.filter((c) => !UK.has(c[0]) && Math.abs(c[1]) < 1700 && Math.abs(c[2]) < 1200);
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
+// HTTP über die http-Module statt fetch: robuster (alte Windows-Versionen, Wine, Firmen-Netzwerke)
+function request(url, { method = 'GET', headers = {}, body } = {}) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const lib = u.protocol === 'https:' ? require('https') : require('http');
+    const req = lib.request(u, { method, headers: body ? { ...headers, 'Content-Length': Buffer.byteLength(body) } : headers, timeout: 15000 }, (res) => {
+      let data = ''; res.setEncoding('utf8');
+      res.on('data', (c) => (data += c));
+      res.on('end', () => resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, text: data, json: () => { try { return JSON.parse(data); } catch { return {}; } } }));
+    });
+    req.on('timeout', () => req.destroy(new Error('Zeitüberschreitung')));
+    req.on('error', reject);
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
 async function post(token, p, body) {
-  const r = await fetch(`${SERVER}/api${p}`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const r = await request(`${SERVER}/api${p}`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error(`${p}: ${r.status}`);
   return r.json();
 }
@@ -39,9 +55,10 @@ function newRoute(from) {
   return { a, b, pts: [[a[1], a[2]], [mx, my], [b[1], b[2]]], seg: 0, t: 0, cargo: cg, mass: mass + Math.round(Math.random() * 30) / 10 };
 }
 
-(async () => {
+async function simulate(opts = {}) {
+  if (opts.server) SERVER = opts.server; if (opts.drivers) N = opts.drivers; if (opts.speed) KMPS = opts.speed;
   const users = all(`SELECT id, display_name, api_token FROM users WHERE api_token IS NOT NULL ORDER BY id LIMIT ?`, N);
-  if (!users.length) { console.log('Keine Benutzer – zuerst "npm run seed" ausführen.'); process.exit(1); }
+  if (!users.length) { console.log('Keine Benutzer – zuerst "npm run seed" ausführen.'); return; }
   const drivers = users.map((u) => ({ u, r: newRoute(), fuel: 900 + Math.random() * 400, job: null, truck: pick(TRUCKS), odo: 100000 + Math.random() * 1e5 }));
   // zufälliger Fortschritt beim Start
   drivers.forEach((d) => { d.r.seg = Math.random() < 0.5 ? 0 : 1; d.r.t = Math.random(); });
@@ -85,4 +102,7 @@ function newRoute(from) {
       } catch (e) { console.log(`Fehler bei ${d.u.display_name}: ${e.message}`); }
     }
   }, STEP * 1000);
-})();
+}
+
+module.exports = { simulate };
+if (require.main === module) simulate();

@@ -15,6 +15,9 @@ const Companies = lazy(() => import('./pages/Companies'));
 const CompanyPublic = lazy(() => import('./pages/CompanyPublic'));
 const DriverPublic = lazy(() => import('./pages/DriverPublic'));
 const PublicMap = lazy(() => import('./pages/PublicMap'));
+const Forgot = lazy(() => import('./pages/Reset').then((m) => ({ default: m.Forgot })));
+const Reset = lazy(() => import('./pages/Reset').then((m) => ({ default: m.Reset })));
+const Admin = lazy(() => import('./pages/app/Admin'));
 const Dashboard = lazy(() => import('./pages/app/Dashboard'));
 const Jobs = lazy(() => import('./pages/app/Jobs'));
 const Live = lazy(() => import('./pages/app/Live'));
@@ -80,6 +83,8 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/map" element={<PublicMap />} />
+        <Route path="/forgot" element={<Forgot />} />
+        <Route path="/reset" element={<Reset />} />
         <Route path="/companies" element={<Companies />} />
         <Route path="/c/:slug" element={<CompanyPublic />} />
         <Route path="/driver/:username" element={<DriverPublic />} />
@@ -92,6 +97,7 @@ function App() {
           <Route path="onboarding" element={<Onboarding />} />
           <Route path="profile" element={<Profile />} />
           <Route path="client" element={<ClientPage />} />
+          <Route path="admin" element={<Admin />} />
           <Route path="payslip/:id" element={<PayslipView />} />
           <Route path="company" element={c(<CompanyHome />)} />
           <Route path="company/members" element={c(<Members />)} />

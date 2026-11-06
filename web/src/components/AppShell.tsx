@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useEffect, useState, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Route, Radio, Trophy, Building2, Wallet, Receipt, Truck, CalendarDays, Settings, LogOut, Menu, X, UserRound, Download, Users2, Megaphone, Search } from 'lucide-react';
+import { LayoutDashboard, Route, Radio, Trophy, Building2, Wallet, Receipt, Truck, CalendarDays, Settings, LogOut, Menu, X, UserRound, Download, Users2, Megaphone, Search, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { Logo, Avatar, Progress, cx, CompanyBadge, PageLoader } from './ui';
 import { api } from '../lib/api';
@@ -52,6 +52,7 @@ export function AppShell() {
     { title: 'Konto', items: [
       { to: '/app/profile', icon: UserRound, label: 'Profil & Lohnzettel' },
       { to: '/app/client', icon: Download, label: 'Client & Token' },
+      ...(me?.user.is_admin ? [{ to: '/app/admin', icon: ShieldCheck, label: 'Plattform-Admin' }] : []),
     ] },
   ];
 

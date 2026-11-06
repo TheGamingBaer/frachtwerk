@@ -76,6 +76,7 @@ router.get('/discord/callback', async (req, res) => {
       user = get('SELECT * FROM users WHERE id=?', r.lastInsertRowid);
       isNew = true;
     } else if (avatar) run('UPDATE users SET avatar_url=? WHERE id=?', avatar, user.id);
+    if (user.banned) return fail(res, 'Dein Konto wurde gesperrt');
 
     const next = state.next && state.next.startsWith('/') && !state.next.startsWith('//') ? state.next : isNew ? '/app/onboarding' : '/app';
     res.redirect(`/auth/callback#token=${encodeURIComponent(sign(user))}&next=${encodeURIComponent(next)}`);

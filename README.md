@@ -23,6 +23,18 @@ Ich wollte kein weiteres Tool mit Premium-Abo bauen, sondern eins, zu dem Firmen
 | **Community** | Konvois/Events mit Zusagen, Firmen-News mit Anpinnen |
 | **Fuhrpark** | LKW kaufen und zuweisen, der Kilometerstand läuft automatisch mit |
 
+## Sofort testen unter Windows (ohne Installation)
+
+1. **`Frachtwerk-Server.exe`** in einen eigenen Ordner legen und doppelklicken.
+   Beim ersten Start fragt es, ob Demo-Daten angelegt werden sollen (Login `demo` / `demo1234`, inkl. Live-Simulation). Der Browser öffnet sich mit `http://localhost:8080`.
+   Alle Daten liegen danach im Ordner `Frachtwerk-Daten` daneben (Datenbank, Backups, `einstellungen.env`).
+2. **`Frachtwerk-Client.exe`** daneben legen. Sie wird dann automatisch unter *Client & Token* zum Download angeboten.
+   Doppelklick → Server-Adresse und Token eingeben → fertig. Die Eingaben werden in `frachtwerk.json` neben der .exe gespeichert.
+3. Windows SmartScreen meldet die Programme evtl. als unbekannt („Weitere Informationen“ → „Trotzdem ausführen“), weil sie nicht kostenpflichtig signiert sind.
+
+Startoptionen des Servers: `--demo` (Demo-Daten ohne Nachfrage), `--simulate`, `--no-simulate`, `--no-browser`.
+Damit andere über das Internet mitfahren können, braucht der Server eine öffentliche Adresse – siehe [Kostenlos hosten](#kostenlos-hosten).
+
 ## Schnellstart (lokal)
 
 Voraussetzung: **Node.js 22.13 oder neuer**. Die Datenbank ist das eingebaute SQLite von Node, es gibt also keine nativen Module und keinen extra Datenbankserver.
@@ -61,6 +73,21 @@ Ohne diese Variablen wird der Discord-Button einfach ausgeblendet. Ist die Disco
 Der Client erkennt Auftragsstart und Ablieferung bzw. Abbruch selbst. Er misst Kilometer (Tacho), Verbrauch (ohne Tankstopps), Fracht- und LKW-Schaden sowie Höchst- und Durchschnittstempo und sendet alle 5 Sekunden Live-Daten. Bei einem Absturz wird die laufende Tour wiederhergestellt.
 Mit `--demo` simuliert er eine komplette Tour, damit man die Einrichtung ohne Spiel prüfen kann.
 
+## Verwaltung
+
+- **Plattform-Admin** (`/app/admin`): Der erste registrierte Benutzer ist Admin (bei Demo-Daten: `demo`). Benutzer sperren, Admins ernennen, Reset-Links erstellen, Speditionen löschen, Backups herunterladen.
+- **Passwort vergessen**: Mit SMTP-Zugang (z. B. kostenlos über Brevo oder ein Gmail-App-Passwort) bekommen Fahrer den Link per Mail. Ohne Mail erstellt ein Admin den Reset-Link (1 Stunde gültig, einmalig).
+- **Discord-Benachrichtigungen**: In den Firmeneinstellungen eine Webhook-URL eintragen und auswählen, was gepostet wird: Lieferungen, Lohnläufe, Bewerbungen, neue Mitglieder, Events, News.
+- **Backups**: täglich automatisch nach `…/backups` (die letzten 14), zusätzlich per Knopfdruck im Admin-Bereich.
+
+## Windows-Programme selbst bauen
+
+```bash
+npm run setup                      # Web-App bauen
+cd packaging && npm ci && node build.mjs     # → dist-exe/Frachtwerk-Server.exe, Frachtwerk-Client.exe
+```
+Benötigt Node 22.23.4 (muss zur eingebetteten `node.exe` passen). Auf GitHub baut `.github/workflows/release.yml` die Programme bei jedem Tag `v*` automatisch und hängt sie an das Release.
+
 ## Kostenlos hosten
 
 Frachtwerk ist **ein einziger Node-Prozess mit einer SQLite-Datei**. Gebraucht wird ein Rechner, der durchläuft und die Datei dauerhaft speichert.
@@ -93,6 +120,10 @@ Die Daten liegen in `./data`. Für HTTPS z. B. Caddy davorschalten oder ebenfall
 | `JWT_SECRET` | wird erzeugt und neben der DB gespeichert | Geheimnis für die Login-Tokens |
 | `PUBLIC_URL` | aus der Anfrage abgeleitet | Öffentliche Adresse (für Discord-Redirect) |
 | `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | – | Aktiviert den Discord-Login |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | – | E-Mail-Versand für „Passwort vergessen“ |
+| `BACKUP_KEEP` / `BACKUP_DIR` / `BACKUP_DISABLED` | 14 / neben der DB / – | Automatische Backups |
+
+In der `Frachtwerk-Server.exe` stehen diese Werte in `Frachtwerk-Daten/einstellungen.env`.
 
 **Backup:** einfach die `.db`-Datei (und `.jwt-secret`) kopieren.
 

@@ -38,6 +38,7 @@ function loadUser(req) {
 function auth(req, res, next) {
   const user = loadUser(req);
   if (!user) return res.status(401).json({ error: 'Nicht angemeldet' });
+  if (user.banned) return res.status(403).json({ error: 'Dein Konto wurde gesperrt' });
   req.user = user;
   req.member = membership(user.id);
   next();
@@ -54,7 +55,7 @@ const role = (min) => (req, res, next) => {
 
 function publicUser(u) {
   if (!u) return null;
-  const { password_hash, api_token, email, discord_id, has_password, ...rest } = u;
+  const { password_hash, api_token, email, discord_id, has_password, reset_hash, reset_expires, banned, ...rest } = u;
   return rest;
 }
 

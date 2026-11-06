@@ -5,6 +5,7 @@ const { get, all, run, tx } = require('./db');
 const { sign, auth, role, newApiToken, publicUser, RANK } = require('./auth');
 const L = require('./logic');
 const Live = require('./live');
+const { notify, embeds, validWebhook, post: postWebhook, EVENTS } = require('./notify');
 
 const api = express.Router();
 const wrap = (fn) => (req, res, next) => { try { const r = fn(req, res, next); if (r && r.catch) r.catch(next); } catch (e) { next(e); } };
@@ -45,12 +46,14 @@ api.post('/auth/login', limit(15, 60_000), wrap((req, res) => {
   const login = str(req.body.login, 120);
   const user = get('SELECT * FROM users WHERE username=? OR email=?', login, login.toLowerCase());
   if (!user || !bcrypt.compareSync(String(req.body.password || ''), user.password_hash)) return bad(res, 'Login fehlgeschlagen', 401);
+  if (user.banned) return bad(res, 'Dein Konto wurde gesperrt', 403);
   res.json({ token: sign(user) });
 }));
 
 api.get('/me', auth, wrap((req, res) => {
   const stats = L.userStats(req.user.id);
-  const { password_hash, ...me } = req.user;
+  const { password_hash, reset_hash, reset_expires, ...me } = req.user;
+  run("UPDATE users SET last_seen=datetime('now') WHERE id=?", req.user.id);
   res.json({ user: me, member: req.member, stats, level: L.levelFromXp(req.user.xp), achievements: L.achievementsFor(stats),
     pendingApplication: get(`SELECT a.*, c.name company_name FROM applications a JOIN companies c ON c.id=a.company_id WHERE a.user_id=? AND a.status='pending'`, req.user.id) || null });
 }));
@@ -166,11 +169,13 @@ function joinCompany(req, res, c, code) {
       run(`INSERT INTO memberships (user_id,company_id) VALUES (?,?)`, req.user.id, c.id);
       run(`DELETE FROM applications WHERE user_id=? AND status='pending'`, req.user.id);
     });
+    notify(c.id, 'member', embeds.member(req.user.display_name));
     return res.json({ joined: true, slug: c.slug });
   }
   if (c.join_mode === 'invite') return bad(res, 'Diese Firma nimmt nur mit Einladungscode auf');
   if (get(`SELECT id FROM applications WHERE user_id=? AND status='pending'`, req.user.id)) return bad(res, 'Du hast bereits eine offene Bewerbung');
   run(`INSERT INTO applications (company_id,user_id,message) VALUES (?,?,?)`, c.id, req.user.id, str(req.body.message, 1000));
+  notify(c.id, 'application', embeds.application(req.user.display_name, req.body.message));
   res.json({ applied: true });
 }
 
@@ -202,7 +207,7 @@ api.get('/company', auth, role('driver'), wrap((req, res) => {
      LEFT JOIN jobs j ON j.user_id=u.id AND j.company_id=m.company_id AND j.status='delivered' AND j.review!='rejected'
      WHERE m.company_id=? GROUP BY u.id ORDER BY ${"CASE m.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 WHEN 'dispatcher' THEN 2 ELSE 3 END"}, km DESC`, c.id);
   const isAdmin = RANK[req.member.role] >= RANK.admin;
-  res.json({ ...c, invite_code: isAdmin ? c.invite_code : null, members, myRole: req.member.role,
+  res.json({ ...c, invite_code: isAdmin ? c.invite_code : null, discord_webhook: isAdmin ? c.discord_webhook : null, members, myRole: req.member.role,
     pendingApplications: isAdmin ? get(`SELECT COUNT(*) n FROM applications WHERE company_id=? AND status='pending'`, c.id).n : 0,
     pendingJobs: get(`SELECT COUNT(*) n FROM jobs WHERE company_id=? AND review='pending' AND status='delivered'`, c.id).n });
 }));
@@ -218,7 +223,20 @@ api.patch('/company', auth, role('admin'), wrap((req, res) => {
     pick('company_pays_fuel', (v) => (v ? 1 : 0)), pick('damage_penalty', (v) => Math.max(0, num(v))), pick('clean_bonus', (v) => Math.max(0, num(v))),
     pick('max_speed_limit', (v) => Math.max(0, Math.round(num(v)))), pick('speeding_penalty', (v) => Math.max(0, num(v))), pick('auto_approve', (v) => (v ? 1 : 0)),
     pick('min_distance', (v) => Math.max(0, Math.round(num(v)))), c.id);
+  if (b.discord_webhook !== undefined) {
+    const url = str(b.discord_webhook, 300);
+    if (url && !validWebhook(url)) return bad(res, 'Ungültige Discord-Webhook-URL');
+    run('UPDATE companies SET discord_webhook=? WHERE id=?', url, c.id);
+  }
+  if (Array.isArray(b.webhook_events)) run('UPDATE companies SET webhook_events=? WHERE id=?', b.webhook_events.filter((e) => EVENTS.includes(e)).join(','), c.id);
   res.json({ ok: true });
+}));
+
+api.post('/company/webhook/test', auth, role('admin'), wrap(async (req, res) => {
+  const url = str(req.body.url, 300) || req.company.discord_webhook;
+  if (!validWebhook(url)) return bad(res, 'Ungültige Discord-Webhook-URL');
+  const ok = await postWebhook(url, { title: '🚚 Frachtwerk ist verbunden!', description: `Ab jetzt landen Neuigkeiten von **${req.company.name}** hier im Kanal.`, color: 0xff8a1f });
+  ok ? res.json({ ok: true }) : bad(res, 'Discord hat die Nachricht abgelehnt – stimmt die URL?');
 }));
 
 api.post('/company/invite', auth, role('admin'), wrap((req, res) => {
@@ -243,6 +261,7 @@ api.post('/company/applications/:id', auth, role('admin'), wrap((req, res) => {
   if (req.body.action === 'accept') {
     if (get('SELECT 1 FROM memberships WHERE user_id=?', a.user_id)) { run(`UPDATE applications SET status='rejected' WHERE id=?`, a.id); return bad(res, 'Fahrer ist inzwischen in einer anderen Firma'); }
     tx(() => { run(`UPDATE applications SET status='accepted' WHERE id=?`, a.id); run(`INSERT INTO memberships (user_id,company_id) VALUES (?,?)`, a.user_id, req.company.id); });
+    notify(req.company.id, 'member', embeds.member(get('SELECT display_name FROM users WHERE id=?', a.user_id).display_name));
   } else run(`UPDATE applications SET status='rejected' WHERE id=?`, a.id);
   res.json({ ok: true });
 }));
@@ -359,6 +378,7 @@ api.post('/company/payroll', auth, role('admin'), wrap((req, res) => {
     run('UPDATE companies SET balance=balance-? WHERE id=?', pv.total, req.company.id);
     return p.lastInsertRowid;
   });
+  notify(req.company.id, 'payroll', embeds.payroll(period, pv.total, pv.rows.length));
   res.json({ id });
 }));
 
@@ -417,6 +437,7 @@ api.post('/company/events', auth, role('dispatcher'), wrap((req, res) => {
   if (!str(b.title) || !str(b.start_at)) return bad(res, 'Titel und Startzeit angeben');
   run(`INSERT INTO events (company_id,title,description,start_at,origin,destination,server,created_by) VALUES (?,?,?,?,?,?,?,?)`,
     req.company.id, str(b.title, 80), str(b.description, 2000), str(b.start_at, 30).replace('T', ' '), str(b.origin, 60), str(b.destination, 60), str(b.server, 60) || 'Singleplayer', req.user.id);
+  notify(req.company.id, 'event', embeds.event({ title: str(b.title, 80), description: str(b.description, 2000), origin: str(b.origin, 60), destination: str(b.destination, 60), server: str(b.server, 60) }));
   res.json({ ok: true });
 }));
 api.post('/company/events/:id/attend', auth, role('driver'), wrap((req, res) => {
@@ -437,6 +458,7 @@ api.get('/company/news', auth, role('driver'), wrap((req, res) => {
 api.post('/company/news', auth, role('dispatcher'), wrap((req, res) => {
   if (!str(req.body.title)) return bad(res, 'Titel angeben');
   run('INSERT INTO news (company_id,author_id,title,body,pinned) VALUES (?,?,?,?,?)', req.company.id, req.user.id, str(req.body.title, 120), str(req.body.body, 4000), req.body.pinned ? 1 : 0);
+  notify(req.company.id, 'news', embeds.news({ title: str(req.body.title, 120), body: str(req.body.body, 4000) }, req.user.display_name));
   res.json({ ok: true });
 }));
 api.delete('/company/news/:id', auth, role('dispatcher'), wrap((req, res) => {
@@ -586,6 +608,7 @@ api.post('/client/job/:id/finish', auth, wrap((req, res) => {
   });
   const done = get('SELECT id,status,review,payout,origin_city,dest_city,cargo,driven_km,damage FROM jobs WHERE id=?', j.id);
   Live.broadcastEvent(req.user.id, done.status === 'delivered' ? 'delivery' : 'cancel', { job: done, display_name: req.user.display_name });
+  if (done.status === 'delivered') notify(j.company_id, 'delivery', embeds.delivery({ ...done, cargo_mass: j.cargo_mass }, req.user.display_name));
   res.json({ ok: true, job: done });
 }));
 

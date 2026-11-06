@@ -1,0 +1,30 @@
+name: Windows-Programme bauen
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.4   # muss zur eingebetteten node.exe passen (packaging/build.mjs)
+      - run: npm ci --prefix server
+      - run: npm ci --prefix web && npm run build --prefix web
+      - run: npm ci --prefix packaging
+      - run: node packaging/build.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frachtwerk-windows
+          path: dist-exe/*.exe
+      - if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist-exe/*.exe

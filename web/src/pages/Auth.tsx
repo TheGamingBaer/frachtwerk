@@ -75,7 +75,7 @@ export function Login() {
   const { login, me } = useAuth();
   const nav = useNavigate();
   const [sp] = useSearchParams();
-  const [f, setF] = useState({ login: '', password: '' });
+  const [f, setF] = useState({ login: sp.get('user') || '', password: '' });
   const [err, setErr] = useState(sp.get('error') || '');
   const [busy, setBusy] = useState(false);
   const next = sp.get('next') || '/app';
@@ -91,6 +91,7 @@ export function Login() {
 
   return (
     <Shell title="Willkommen zurück" subtitle="Melde dich an und mach da weiter, wo du aufgehört hast.">
+      {sp.get('reset') && <div className="mb-6 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.07] p-4 text-sm text-emerald-200">Passwort geändert – du kannst dich jetzt anmelden.</div>}
       {sp.get('demo') && (
         <div className="mb-6 rounded-2xl border border-amber-500/25 bg-amber-500/[0.07] p-4">
           <div className="text-sm text-amber-100">Demo-Spedition „Nordlicht Logistik" mit echten Beispieldaten ansehen:</div>
@@ -100,7 +101,7 @@ export function Login() {
       <DiscordButton label="Mit Discord anmelden" next={sp.get('next') || undefined} />
       <form onSubmit={submit} className="space-y-4">
         <Field label="Benutzername oder E-Mail"><Input autoFocus value={f.login} onChange={(e) => setF({ ...f, login: e.target.value })} autoComplete="username" /></Field>
-        <Field label="Passwort"><Input type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} autoComplete="current-password" /></Field>
+        <Field label="Passwort" hint={<Link to="/forgot" className="text-zinc-500 hover:text-amber-400">Passwort vergessen?</Link>}><Input type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} autoComplete="current-password" /></Field>
         {err && <p className="rounded-xl bg-rose-500/10 px-3 py-2 text-sm text-rose-300">{err}</p>}
         <Button className="w-full" size="lg" loading={busy}>Anmelden <ArrowRight className="h-4 w-4" /></Button>
       </form>

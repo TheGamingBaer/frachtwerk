@@ -5,7 +5,8 @@ const { newApiToken } = require('./auth');
 const { finalizeJob } = require('./api');
 const L = require('./logic');
 
-if (get("SELECT id FROM users WHERE username='demo'")) { console.log('Demo-Daten existieren bereits.'); process.exit(0); }
+function seedDemo() {
+if (get("SELECT id FROM users WHERE username='demo'")) { console.log('Demo-Daten existieren bereits.'); return false; }
 
 const pw = bcrypt.hashSync('demo1234', 10);
 const drivers = [
@@ -22,7 +23,7 @@ const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
 tx(() => {
   const ids = drivers.map(([u, n, h], i) => run(`INSERT INTO users (username,email,password_hash,display_name,avatar_hue,api_token,bio,is_admin) VALUES (?,?,?,?,?,?,?,?)`,
-    u, `${u}@demo.local`, pw, n, h, newApiToken(), i === 0 ? 'Fährt seit 2014 durch Europa. Lieblingsstrecke: Brenner-Pass bei Nacht.' : '', 0).lastInsertRowid);
+    u, `${u}@demo.local`, pw, n, h, newApiToken(), i === 0 ? 'Fährt seit 2014 durch Europa. Lieblingsstrecke: Brenner-Pass bei Nacht.' : '', i === 0 ? 1 : 0).lastInsertRowid);
 
   const mk = (name, tag, slug, hue, desc, owner, mode) => {
     const id = run(`INSERT INTO companies (name,tag,slug,description,hue,join_mode,invite_code,owner_id,balance,discord) VALUES (?,?,?,?,?,?,?,?,?,?)`,
@@ -99,3 +100,8 @@ tx(() => {
   run(`INSERT INTO applications (company_id,user_id,message) VALUES (?,?,?)`, c1, ids[7], 'Hi! Fahre seit 3 Jahren, hauptsächlich Skandinavien. Würde mich freuen!');
 });
 console.log('✅ Demo-Daten angelegt. Login: demo / demo1234');
+return true;
+}
+
+module.exports = { seedDemo };
+if (require.main === module) seedDemo();

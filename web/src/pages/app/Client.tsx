@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Copy, Eye, EyeOff, RefreshCw, Download, Terminal, Plug, Gamepad2, CheckCircle2, ExternalLink } from 'lucide-react';
-import { useAuth } from '../../lib/auth';
+import { useApi, useAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
 import { Button, Card, CardHeader, PageHeader, useToast } from '../../components/ui';
 
@@ -8,6 +8,7 @@ export default function ClientPage() {
   const { me, refresh } = useAuth();
   const toast = useToast();
   const [show, setShow] = useState(false);
+  const { data: dl } = useApi<{ client_exe: boolean }>('/downloads');
   if (!me) return null;
   const token = me.user.api_token;
   const server = window.location.origin;
@@ -17,8 +18,11 @@ export default function ClientPage() {
 
   const steps = [
     { icon: Plug, title: 'Telemetrie-Plugin installieren', body: <>Lade den kostenlosen <a className="text-amber-400 hover:underline" href="https://github.com/Funbit/ets2-telemetry-server" target="_blank" rel="noreferrer">Funbit ETS2 Telemetry Server <ExternalLink className="inline h-3 w-3" /></a> herunter, starte <code className="rounded bg-white/5 px-1">Ets2Telemetry.exe</code> und klicke auf „Install". Er stellt die Spieldaten unter <code className="rounded bg-white/5 px-1">localhost:25555</code> bereit – funktioniert für ETS2 und ATS.</> },
-    { icon: Download, title: 'Node.js & Frachtwerk-Client', body: <>Installiere <a className="text-amber-400 hover:underline" href="https://nodejs.org" target="_blank" rel="noreferrer">Node.js (LTS)</a> und lade den Client herunter. Er ist eine einzige Datei ohne weitere Abhängigkeiten.</>, action: <Button href="/download/frachtwerk-client.js" variant="outline" size="sm"><Download className="h-4 w-4" /> frachtwerk-client.js</Button> },
-    { icon: Terminal, title: 'Client starten', body: <>Öffne im Download-Ordner ein Terminal und starte den Client mit deinem persönlichen Token:</>, code: true },
+    dl?.client_exe
+      ? { icon: Download, title: 'Frachtwerk-Client herunterladen', body: <>Ein Programm, nichts zu installieren. Leg es z. B. auf den Desktop. Beim ersten Start fragt es nach <b className="text-zinc-200">Server-Adresse</b> (<code className="rounded bg-white/5 px-1">{server}</code>) und deinem <b className="text-zinc-200">Token</b> von oben. Windows zeigt evtl. „Der Computer wurde durch Windows geschützt“ → „Weitere Informationen“ → „Trotzdem ausführen“.</>,
+          action: <div className="flex flex-wrap gap-2"><Button href="/download/Frachtwerk-Client.exe"><Download className="h-4 w-4" /> Frachtwerk-Client.exe (Windows)</Button><Button href="/download/frachtwerk-client.js" variant="ghost" size="sm">Mac / Linux: Skript-Version</Button></div> }
+      : { icon: Download, title: 'Node.js & Frachtwerk-Client', body: <>Installiere <a className="text-amber-400 hover:underline" href="https://nodejs.org" target="_blank" rel="noreferrer">Node.js (LTS)</a> und lade den Client herunter. Er ist eine einzige Datei ohne weitere Abhängigkeiten.</>, action: <Button href="/download/frachtwerk-client.js" variant="outline" size="sm"><Download className="h-4 w-4" /> frachtwerk-client.js</Button> },
+    ...(dl?.client_exe ? [] : [{ icon: Terminal, title: 'Client starten', body: <>Öffne im Download-Ordner ein Terminal und starte den Client mit deinem persönlichen Token:</>, code: true }]),
     { icon: Gamepad2, title: 'Spiel starten & Auftrag annehmen', body: <>Der Client erkennt Start und Ablieferung automatisch, misst Kilometer, Verbrauch und Schaden und sendet alles an Frachtwerk. Dein Live-Status erscheint auf der Live-Karte.</> },
   ];
 

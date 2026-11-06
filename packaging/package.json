@@ -1,0 +1,12 @@
+{
+  "name": "frachtwerk-packaging",
+  "private": true,
+  "description": "Baut Frachtwerk-Client.exe und Frachtwerk-Server.exe (Node Single Executable Applications)",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "postject": "^1.0.0-alpha.6"
+  }
+}
