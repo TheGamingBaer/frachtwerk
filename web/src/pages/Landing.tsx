@@ -10,6 +10,8 @@ import { LiveMap } from '../components/LiveMap';
 import { useLiveDrivers } from '../lib/live';
 import { ago } from '../lib/format';
 import { DiscordIcon } from '../components/icons';
+import { useSite } from '../lib/site';
+import { Modal } from '../components/ui';
 
 const demoTrend = Array.from({ length: 30 }, (_, i) => ({ label: `${i + 1}.`, km: Math.round(2600 + Math.sin(i / 3) * 900 + i * 70 + (i % 4) * 300), payout: Math.round(1800 + Math.cos(i / 4) * 600 + i * 50) }));
 
@@ -154,6 +156,32 @@ function Ticker() {
   );
 }
 
+function Gallery() {
+  const { site } = useSite();
+  const [open, setOpen] = useState<number | null>(null);
+  if (!site.gallery.length) return null;
+  const g = site.gallery;
+  return (
+    <section className="relative mx-auto max-w-6xl px-4 py-24 sm:px-6">
+      <div className="mb-10 flex items-end justify-between gap-4">
+        <div><div className="hazard mb-4 h-1.5 w-16 rounded-full" /><h2 className="font-display text-4xl font-bold uppercase tracking-tight text-white sm:text-5xl">{site.gallery_title}</h2></div>
+        {site.discord_url && <Button href={site.discord_url} variant="outline">Unser Discord</Button>}
+      </div>
+      <div className="grid auto-rows-[220px] grid-cols-2 gap-3 md:grid-cols-4">
+        {g.map((img, i) => (
+          <button key={img.url + i} onClick={() => setOpen(i)} className={cx('group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-ink-900', i % 5 === 0 && 'md:col-span-2 md:row-span-2', i % 5 === 3 && 'md:col-span-2')}>
+            <img src={img.url} alt={img.caption} loading="lazy" className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]" />
+            {img.caption && <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-4 pt-10 text-left text-sm font-medium text-white">{img.caption}</span>}
+          </button>
+        ))}
+      </div>
+      <Modal open={open !== null} onClose={() => setOpen(null)} title={open !== null ? g[open].caption || site.gallery_title : ''} wide>
+        {open !== null && <img src={g[open].url} alt="" className="w-full rounded-xl" />}
+      </Modal>
+    </section>
+  );
+}
+
 function LiveSection() {
   const { store, version, drivers, status } = useLiveDrivers({ publicMode: true });
   const n = drivers.filter((d) => d.game === 'ets2').length;
@@ -185,6 +213,7 @@ function LiveSection() {
 }
 
 export default function Landing() {
+  const { site } = useSite();
   const { data: stats } = useApi('/public/stats');
   const { data: providers } = useApi<{ discord: boolean }>('/auth/providers');
   const heroRef = useRef(null);
@@ -199,6 +228,10 @@ export default function Landing() {
       {/* HERO */}
       <section ref={heroRef} className="relative overflow-hidden pt-32 pb-24 sm:pt-40">
         <div className="pointer-events-none absolute inset-0">
+          {site.hero_image && (<>
+            <img src={site.hero_image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-45" />
+            <div className="absolute inset-0 bg-gradient-to-b from-ink-950/70 via-ink-950/40 to-ink-950" />
+          </>)}
           <div className="absolute left-1/2 top-[-200px] h-[700px] w-[1100px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(255,138,31,.22),transparent)]" />
           <div className="absolute left-[10%] top-[30%] h-[300px] w-[300px] rounded-full bg-cyan-500/10 blur-[100px]" />
           <Road />
@@ -207,15 +240,15 @@ export default function Landing() {
           <motion.a href="#features" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             className="mx-auto inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/[0.08] py-1 pl-1 pr-3 text-xs text-amber-200 backdrop-blur hover:bg-amber-500/15 transition">
             <span className="hazard h-3 w-6 rounded-full" />
-            Für ETS2 &amp; ATS · kostenlos <ArrowRight className="h-3 w-3" />
+            {site.hero_kicker} <ArrowRight className="h-3 w-3" />
           </motion.a>
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="mx-auto mt-7 max-w-4xl font-display text-[44px] font-bold leading-[1.02] tracking-[-0.03em] text-white sm:text-6xl md:text-7xl">
-            <span className="uppercase">Fahren. Abliefern.</span><br /><span className="uppercase text-amber-400">Lohnzettel.</span>
+            <span className="uppercase">{site.hero_title}</span>{site.hero_accent && <><br /><span className="uppercase text-amber-400">{site.hero_accent}</span></>}
           </motion.h1>
           <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.8 }}
             className="mx-auto mt-6 max-w-2xl text-base text-zinc-400 sm:text-lg">
-            Frachtwerk erfasst jede Tour aus ETS2 und ATS, rechnet den Lohn nach euren Regeln ab und zeigt eure Fahrer live auf der Karte. Kostenlos, für jede Spedition.
+            {site.hero_text}
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.8 }} className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button to="/register" size="lg" className="w-full sm:w-auto">Spedition gründen <ArrowRight className="h-4 w-4" /></Button>
@@ -249,6 +282,7 @@ export default function Landing() {
 
       <Ticker />
       <LiveSection />
+      <Gallery />
 
       {/* FEATURES */}
       <section id="features" className="relative mx-auto max-w-6xl scroll-mt-24 px-4 py-28 sm:px-6">

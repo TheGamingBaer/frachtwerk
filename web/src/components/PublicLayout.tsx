@@ -3,6 +3,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { Logo, Button, cx } from './ui';
 import { useAuth } from '../lib/auth';
+import { useSite } from '../lib/site';
 
 export function PublicNav() {
   const { me } = useAuth();
@@ -42,6 +43,7 @@ export function PublicNav() {
 }
 
 export function Footer() {
+  const { site } = useSite();
   return (
     <footer className="relative border-t border-white/[0.06] bg-ink-950">
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-2 lg:grid-cols-4">
@@ -55,7 +57,7 @@ export function Footer() {
           <ul className="space-y-2 text-sm text-zinc-400">
             <li><a href="/#features" className="hover:text-white">Features</a></li>
             <li><Link to="/companies" className="hover:text-white">Firmenverzeichnis</Link></li>
-            <li><Link to="/app/client" className="hover:text-white">Client herunterladen</Link></li>
+            <li><Link to="/app/client" className="hover:text-white">App herunterladen</Link></li>
           </ul>
         </div>
         <div>
@@ -67,7 +69,7 @@ export function Footer() {
           </ul>
         </div>
       </div>
-      <div className="border-t border-white/[0.04] py-6 text-center text-xs text-zinc-600">© {new Date().getFullYear()} Frachtwerk · Mit ❤️ für die Trucking-Community gebaut</div>
+      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-white/[0.04] py-6 text-xs text-zinc-600"><Link to="/impressum" className="hover:text-zinc-300">Impressum</Link><Link to="/datenschutz" className="hover:text-zinc-300">Datenschutz</Link><span>© {new Date().getFullYear()} {site.site_name}</span>{site.discord_url && <a href={site.discord_url} target="_blank" rel="noreferrer" className="hover:text-zinc-300">Discord</a>}</div>
     </footer>
   );
 }

@@ -86,6 +86,7 @@ Mit `--demo` simuliert er eine komplette Tour, damit man die Einrichtung ohne Sp
 - **Plattform-Admin** (`/app/admin`): Der erste registrierte Benutzer ist Admin (bei Demo-Daten: `demo`). Benutzer sperren, Admins ernennen, Reset-Links erstellen, Speditionen löschen, Backups herunterladen.
 - **Passwort vergessen**: Mit SMTP-Zugang (z. B. kostenlos über Brevo oder ein Gmail-App-Passwort) bekommen Fahrer den Link per Mail. Ohne Mail erstellt ein Admin den Reset-Link (1 Stunde gültig, einmalig).
 - **Discord-Benachrichtigungen**: In den Firmeneinstellungen eine Webhook-URL eintragen und auswählen, was gepostet wird: Lieferungen, Lohnläufe, Bewerbungen, neue Mitglieder, Events, News.
+- **Website-Editor** (Admin → *Website*): Name, Logo, Startseiten-Text, Hintergrundbild, Bildergalerie, Impressum & Datenschutz (mit Vorlagen) – ohne Programmieren. Bilder landen in `…/uploads` neben der Datenbank.
 - **Backups**: täglich automatisch nach `…/backups` (die letzten 14), zusätzlich per Knopfdruck im Admin-Bereich.
 
 ## Windows-Programme selbst bauen

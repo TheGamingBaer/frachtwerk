@@ -6,6 +6,7 @@ const compression = require('compression');
 const { api } = require('./api');
 const { discordRouter } = require('./discord');
 const { adminRouter } = require('./admin');
+const { siteRouter } = require('./site');
 const Backup = require('./backup');
 
 const app = express();
@@ -56,6 +57,7 @@ app.get(`/download/${APP_FILE}`, (req, res, next) => {
   rs.on('end', () => res.end(trailer)); rs.pipe(res, { end: false });
 });
 app.use('/api/auth', discordRouter);
+app.use(siteRouter);
 app.use('/api', adminRouter);
 app.use('/api', api);
 app.use('/api', (req, res) => res.status(404).json({ error: 'Unbekannter Endpunkt' }));

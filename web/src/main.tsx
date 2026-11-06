@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import './index.css';
 import { AuthProvider, useAuth } from './lib/auth';
+import { SiteProvider } from './lib/site';
 import { ToastProvider, Logo } from './components/ui';
 import { AppShell } from './components/AppShell';
 import Landing from './pages/Landing';
@@ -18,6 +19,7 @@ const PublicMap = lazy(() => import('./pages/PublicMap'));
 const Forgot = lazy(() => import('./pages/Reset').then((m) => ({ default: m.Forgot })));
 const Reset = lazy(() => import('./pages/Reset').then((m) => ({ default: m.Reset })));
 const Admin = lazy(() => import('./pages/app/Admin'));
+const Legal = lazy(() => import('./pages/Legal'));
 const Pair = lazy(() => import('./pages/app/Pair'));
 const Dashboard = lazy(() => import('./pages/app/Dashboard'));
 const Jobs = lazy(() => import('./pages/app/Jobs'));
@@ -86,6 +88,8 @@ function App() {
         <Route path="/map" element={<PublicMap />} />
         <Route path="/forgot" element={<Forgot />} />
         <Route path="/reset" element={<Reset />} />
+        <Route path="/impressum" element={<Legal kind="impressum" />} />
+        <Route path="/datenschutz" element={<Legal kind="datenschutz" />} />
         <Route path="/companies" element={<Companies />} />
         <Route path="/c/:slug" element={<CompanyPublic />} />
         <Route path="/driver/:username" element={<DriverPublic />} />
@@ -119,11 +123,13 @@ function App() {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
+      <SiteProvider>
       <AuthProvider>
         <ToastProvider>
           <App />
         </ToastProvider>
       </AuthProvider>
+      </SiteProvider>
     </BrowserRouter>
   </React.StrictMode>,
 );

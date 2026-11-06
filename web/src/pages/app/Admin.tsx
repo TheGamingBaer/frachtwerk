@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { SiteEditor } from '../../components/SiteEditor';
 import { ShieldAlert, Users2, Building2, Package, Radio, HardDriveDownload, Search, Ban, Crown, KeyRound, Trash2, Copy, Mail, CheckCircle2, XCircle } from 'lucide-react';
 import { useApi, useAuth } from '../../lib/auth';
 import { api, tokenStore } from '../../lib/api';
@@ -9,7 +10,8 @@ import { ago, eur, num } from '../../lib/format';
 export default function Admin() {
   const { me } = useAuth();
   const toast = useToast();
-  const [tab, setTab] = useState('users');
+  const [sp] = useSearchParams();
+  const [tab, setTab] = useState(sp.get('tab') || 'users');
   const [q, setQ] = useState('');
   const { data: o, reload: reloadO } = useApi('/admin/overview');
   const { data: users, reload: reloadU } = useApi<any[]>(tab === 'users' ? `/admin/users?q=${encodeURIComponent(q)}` : null, [tab, q]);
@@ -51,7 +53,9 @@ export default function Admin() {
         ))}
       </div>
 
-      <Tabs id="adm" value={tab} onChange={setTab} tabs={[{ id: 'users', label: 'Benutzer' }, { id: 'companies', label: 'Speditionen' }, { id: 'backups', label: 'Backups' }]} />
+      <Tabs id="adm" value={tab} onChange={setTab} tabs={[{ id: 'site', label: 'Website' }, { id: 'users', label: 'Benutzer' }, { id: 'companies', label: 'Speditionen' }, { id: 'backups', label: 'Backups' }]} />
+
+      {tab === 'site' && <SiteEditor />}
 
       {tab === 'users' && (
         <Card>

@@ -4,20 +4,25 @@ import clsx from 'clsx';
 import { X, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import { useSite } from '../lib/site';
 
 export const cx = clsx;
 
 // ---------- Logo ----------
 export function Logo({ className = '', small = false }: { className?: string; small?: boolean }) {
   const gid = 'lg' + useId().replace(/:/g, '');
+  const { site } = useSite();
+  const name = site.site_name || 'Frachtwerk';
+  const isDefault = name === 'Frachtwerk';
   return (
     <span className={cx('inline-flex items-center gap-2.5 font-display font-bold tracking-tight text-white', className)}>
-      <span className={cx('relative grid place-items-center rounded-xl bg-ink-800 ring-1 ring-white/10', small ? 'h-8 w-8' : 'h-9 w-9')}>
-        <svg viewBox="0 0 64 64" className="h-[70%] w-[70%]"><defs><linearGradient id={gid} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ffd08a" /><stop offset="1" stopColor="#f06d00" /></linearGradient></defs>
-          <path d="M8 54 L26 10 H58 L53 22 H35 L31 31 H48 L43 43 H26 L21 54 Z" fill={`url(#${gid})`} /></svg>
-        <span className="absolute inset-0 rounded-xl bg-amber-500/20 blur-md -z-10" />
-      </span>
-      {!small && <span className="text-lg">Fracht<span className="text-amber-400">werk</span></span>}
+      {site.logo_url
+        ? <img src={site.logo_url} alt="" className={cx('rounded-xl object-contain', small ? 'h-8 w-8' : 'h-9 w-9')} />
+        : <span className={cx('relative grid place-items-center rounded-xl bg-ink-800 ring-1 ring-white/10', small ? 'h-8 w-8' : 'h-9 w-9')}>
+            <svg viewBox="0 0 64 64" className="h-[70%] w-[70%]"><defs><linearGradient id={gid} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ffd08a" /><stop offset="1" stopColor="#f06d00" /></linearGradient></defs>
+              <path d="M8 54 L26 10 H58 L53 22 H35 L31 31 H48 L43 43 H26 L21 54 Z" fill={`url(#${gid})`} /></svg>
+          </span>}
+      {!small && (isDefault ? <span className="text-lg">Fracht<span className="text-amber-400">werk</span></span> : <span className="text-lg uppercase">{name}</span>)}
     </span>
   );
 }
