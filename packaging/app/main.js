@@ -147,9 +147,9 @@ async function startAgent() {
     if (state === 'offline' && lastState && lastState !== 'offline') notify('Server nicht erreichbar', 'Frachtwerk versucht es automatisch weiter.');
     lastState = state;
   });
-  agent.on('job-start', (j) => notify('Tour gestartet 🚚', `${j.from} → ${j.to} · ${j.cargo} (${j.cargo_mass.toFixed(1).replace('.', ',')} t)`));
+  agent.on('job-start', (j) => notify('Tour gestartet', `${j.from} → ${j.to} · ${j.cargo} (${j.cargo_mass.toFixed(1).replace('.', ',')} t)`));
   agent.on('job-finish', ({ job, result, delivered }) => delivered
-    ? notify(`Abgeliefert in ${job.to} ✅`, `${Math.round(result.driven_km)} km · ${String(result.damage).replace('.', ',')} % Schaden · Lohn ${eur(result.payout)}`)
+    ? notify(`Abgeliefert in ${job.to}`, `${Math.round(result.driven_km)} km · ${String(result.damage).replace('.', ',')} % Schaden · Lohn ${eur(result.payout)}`)
     : notify('Tour abgebrochen', `${job.from} → ${job.to}`));
   agent.start();
 }
@@ -189,7 +189,7 @@ async function beginPairing(server) {
     pairing = null;
     if (!d) return notify('Verbindung abgelaufen', 'Bitte erneut verbinden.');
     cfg.server = server; cfg.token = d.token; cfg.user = d.user; saveCfg();
-    notify('Verbunden ✅', `Angemeldet als ${d.user}. Deine Touren werden ab jetzt automatisch erfasst.`);
+    notify('Verbunden', `Angemeldet als ${d.user}. Deine Touren werden ab jetzt automatisch erfasst.`);
     await startAgent();
     checkUpdate();
   });
@@ -333,7 +333,7 @@ async function uninstall() {
   const bat = path.join(os.tmpdir(), 'frachtwerk-uninstall.cmd');
   fs.writeFileSync(bat, `@echo off\r\nchcp 65001 >nul\r\nping -n 4 127.0.0.1 >nul\r\nrmdir /s /q "${INSTALL_DIR}"\r\ndel "%~f0"\r\n`);
   cp.spawn('cmd.exe', ['/d', '/c', bat], { windowsHide: true, detached: true, stdio: 'ignore' }).unref();
-  messageBox(fs.existsSync(path.join(APPDATA, 'Server')) ? `Frachtwerk wurde entfernt.\n\nDie Daten deines Servers bleiben gesichert unter:\n${path.join(APPDATA, 'Server')}` : 'Frachtwerk wurde entfernt. Gute Fahrt! 🚚');
+  messageBox(fs.existsSync(path.join(APPDATA, 'Server')) ? `Frachtwerk wurde entfernt.\n\nDie Daten deines Servers bleiben gesichert unter:\n${path.join(APPDATA, 'Server')}` : 'Frachtwerk wurde entfernt. Gute Fahrt!');
   setTimeout(() => process.exit(0), 1500);
 }
 

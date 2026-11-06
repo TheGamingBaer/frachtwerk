@@ -26,7 +26,7 @@ export default function Onboarding() {
 
   const create = async () => {
     setBusy(true);
-    try { await api('/companies', { body: f }); await refresh(); toast('Spedition gegründet! 🎉'); nav('/app/company/settings'); }
+    try { await api('/companies', { body: f }); await refresh(); toast('Spedition gegründet!'); nav('/app/company/settings'); }
     catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); }
   };
   const joinCode = async () => {

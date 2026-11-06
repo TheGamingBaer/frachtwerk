@@ -23,7 +23,7 @@ export default function Members() {
   const copy = (t: string) => { navigator.clipboard?.writeText(t); toast('In die Zwischenablage kopiert'); };
   const regen = async () => { await api('/company/invite', { body: {} }); reload(); toast('Neuer Code erstellt'); };
   const decide = async (id: number, action: string) => {
-    try { await api(`/company/applications/${id}`, { body: { action } }); toast(action === 'accept' ? 'Fahrer aufgenommen 🎉' : 'Bewerbung abgelehnt'); reloadApps(); reload(); } catch (e: any) { toast(e.message, 'err'); }
+    try { await api(`/company/applications/${id}`, { body: { action } }); toast(action === 'accept' ? 'Fahrer aufgenommen' : 'Bewerbung abgelehnt'); reloadApps(); reload(); } catch (e: any) { toast(e.message, 'err'); }
   };
   const saveEdit = async () => {
     try { await api(`/company/members/${edit.id}`, { method: 'PATCH', body: { role: edit.role, rank_title: edit.rank_title } }); toast('Gespeichert'); setEdit(null); reload(); } catch (e: any) { toast(e.message, 'err'); }

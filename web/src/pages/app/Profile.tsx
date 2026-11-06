@@ -37,7 +37,7 @@ export default function Profile() {
   useEffect(() => { if (me) setF({ display_name: me.user.display_name, bio: me.user.bio, country: me.user.country, avatar_hue: me.user.avatar_hue, live_public: !!me.user.live_public }); }, [me]);
   useEffect(() => {
     const d = sp.get('discord');
-    if (d === 'linked') toast('Discord verknüpft 🎉'); else if (d === 'taken') toast('Dieses Discord-Konto ist bereits mit einem anderen Profil verknüpft', 'err');
+    if (d === 'linked') toast('Discord verknüpft'); else if (d === 'taken') toast('Dieses Discord-Konto ist bereits mit einem anderen Profil verknüpft', 'err');
     if (d) { sp.delete('discord'); setSp(sp, { replace: true }); }
   }, []);
   if (!me || !f) return null;

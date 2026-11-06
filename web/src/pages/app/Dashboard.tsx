@@ -25,7 +25,7 @@ export default function Dashboard() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="label text-amber-400/80">Cockpit</div>
-          <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-white sm:text-[34px]">{greeting()}, {me.user.display_name.split(' ')[0]} 👋</h1>
+          <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-white sm:text-[34px]">{greeting()}, {me.user.display_name.split(' ')[0]}</h1>
           <p className="mt-1.5 text-sm text-zinc-400">
             {d.companyRank ? <>Du bist diesen Monat <span className="font-semibold text-amber-300">Platz {d.companyRank}</span> von {d.companySize} in deiner Firma.</> : 'Starte den Client und fahr deine erste Tour.'}
           </p>

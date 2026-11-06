@@ -29,15 +29,15 @@ function notify(companyId, type, embed) {
 
 const embeds = {
   delivery: (job, driver) => ({
-    title: `✅ ${driver} hat geliefert`, description: `**${job.origin_city} → ${job.dest_city}**\n${job.cargo}${job.cargo_mass ? ` · ${Number(job.cargo_mass).toFixed(1).replace('.', ',')} t` : ''}`,
+    title: ` ${driver} hat geliefert`, description: `**${job.origin_city} → ${job.dest_city}**\n${job.cargo}${job.cargo_mass ? ` · ${Number(job.cargo_mass).toFixed(1).replace('.', ',')} t` : ''}`,
     fields: [{ name: 'Strecke', value: `${Math.round(job.driven_km)} km`, inline: true }, { name: 'Schaden', value: `${Number(job.damage || 0).toFixed(1).replace('.', ',')} %`, inline: true }, { name: 'Lohn', value: eur(job.payout), inline: true }],
     path: '/app/jobs',
   }),
-  payroll: (period, total, drivers) => ({ title: `💸 Lohnlauf ${period} abgeschlossen`, description: `${drivers} Fahrer · insgesamt **${eur(total)}** ausgezahlt.`, path: '/app/profile' }),
-  application: (name, msg) => ({ title: `📨 Neue Bewerbung von ${name}`, description: msg ? `„${String(msg).slice(0, 300)}“` : 'Ohne Nachricht', path: '/app/company/members' }),
-  member: (name) => ({ title: `👋 Willkommen, ${name}!`, description: 'Neues Mitglied im Team.', path: '/app/company/members' }),
-  event: (e) => ({ title: `📅 Neues Event: ${e.title}`, description: `${e.origin ? `${e.origin} → ${e.destination}\n` : ''}${e.server || ''}\n${(e.description || '').slice(0, 300)}`, path: '/app/company/events' }),
-  news: (n, author) => ({ title: `📣 ${n.title}`, description: String(n.body || '').slice(0, 1000), author: { name: author }, path: '/app/company/news' }),
+  payroll: (period, total, drivers) => ({ title: ` Lohnlauf ${period} abgeschlossen`, description: `${drivers} Fahrer · insgesamt **${eur(total)}** ausgezahlt.`, path: '/app/profile' }),
+  application: (name, msg) => ({ title: ` Neue Bewerbung von ${name}`, description: msg ? `„${String(msg).slice(0, 300)}“` : 'Ohne Nachricht', path: '/app/company/members' }),
+  member: (name) => ({ title: ` Willkommen, ${name}!`, description: 'Neues Mitglied im Team.', path: '/app/company/members' }),
+  event: (e) => ({ title: ` Neues Event: ${e.title}`, description: `${e.origin ? `${e.origin} → ${e.destination}\n` : ''}${e.server || ''}\n${(e.description || '').slice(0, 300)}`, path: '/app/company/events' }),
+  news: (n, author) => ({ title: ` ${n.title}`, description: String(n.body || '').slice(0, 1000), author: { name: author }, path: '/app/company/news' }),
 };
 
 module.exports = { notify, embeds, validWebhook, post, EVENTS };

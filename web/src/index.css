@@ -4,7 +4,7 @@
 
 :root { color-scheme: dark; }
 html, body { background: #05060a; }
-body { font-feature-settings: 'cv11', 'ss01'; overflow-x: hidden; }
+body { overflow-x: hidden; }
 ::selection { background: rgba(255, 138, 31, .35); color: #fff; }
 
 * { scrollbar-width: thin; scrollbar-color: #262c3f transparent; }
@@ -31,7 +31,13 @@ body { font-feature-settings: 'cv11', 'ss01'; overflow-x: hidden; }
     @apply w-full rounded-xl bg-ink-900/80 border border-white/10 px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600
       outline-none transition focus:border-amber-500/60 focus:ring-4 focus:ring-amber-500/10;
   }
-  .text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-br from-white via-amber-200 to-amber-500; }
+  .text-gradient { @apply text-amber-400; }
+  /* Ortsangaben im Stil deutscher Autobahn-Wegweiser */
+  .sign { @apply inline-flex items-center rounded-[5px] bg-[#1e4f9c] px-2 py-0.5 font-display font-semibold uppercase tracking-wide text-white;
+    box-shadow: inset 0 0 0 1.5px #1e4f9c, inset 0 0 0 3px #fff; padding-left: .55rem; padding-right: .55rem; }
+  /* Warnstreifen als Markenzeichen */
+  .hazard { background: repeating-linear-gradient(-45deg, #ffb020 0 10px, #0a0c12 10px 20px); }
+  h1, h2 { letter-spacing: -0.005em; }
   .tnum { font-variant-numeric: tabular-nums; }
 }
 

@@ -99,9 +99,9 @@ export function JobModal({ id, onClose, onChange }: { id: number | null; onClose
               <ReviewBadge review={j.review} status={j.status} />
             </div>
             <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-              <div><div className="label">Start</div><div className="mt-1 font-display text-xl font-semibold text-white">{j.origin_city}</div><div className="text-xs text-zinc-500">{j.origin_company}</div></div>
+              <div><div className="label">Start</div><div className="mt-1.5"><span className="sign text-lg">{j.origin_city}</span></div><div className="text-xs text-zinc-500">{j.origin_company}</div></div>
               <div className="flex items-center gap-1 text-amber-400"><MapPin className="h-4 w-4" /><span className="h-px w-10 bg-gradient-to-r from-amber-400 to-cyan-400 sm:w-24" /><MapPin className="h-4 w-4 text-cyan-400" /></div>
-              <div className="text-right"><div className="label">Ziel</div><div className="mt-1 font-display text-xl font-semibold text-white">{j.dest_city}</div><div className="text-xs text-zinc-500">{j.dest_company}</div></div>
+              <div className="text-right"><div className="label">Ziel</div><div className="mt-1.5"><span className="sign text-lg">{j.dest_city}</span></div><div className="text-xs text-zinc-500">{j.dest_company}</div></div>
             </div>
           </div>
 

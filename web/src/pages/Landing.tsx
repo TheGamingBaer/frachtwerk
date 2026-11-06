@@ -161,7 +161,7 @@ function LiveSection() {
     <section id="live" className="relative scroll-mt-24 py-28">
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[.85fr_1.15fr]">
         <div>
-          <SectionTitle left eyebrow="Live-Map" title={<>Deine Flotte.<br />In Echtzeit.</>} text="Jeder Truck mit gestartetem Client erscheint sofort auf der Karte – mit Spur, Fracht, Ziel und Tempo. Gezeichnet in der Projektion des Spiels, damit Europa genau so aussieht wie in ETS2." />
+          <SectionTitle left eyebrow="Live-Map" title={<>Wo ist wer<br />gerade unterwegs?</>} text="Jeder Truck mit gestartetem Client erscheint sofort auf der Karte – mit Spur, Fracht, Ziel und Tempo. Gezeichnet in der Projektion des Spiels, damit Europa genau so aussieht wie in ETS2." />
           <ul className="mt-8 space-y-3">
             {['Speditionsansicht: nur deine Fahrer – inklusive Offline-Liste', 'Globale Karte mit allen öffentlichen Fahrern', 'Verfolgen-Modus, Routen zum Ziel & Lieferungs-Ticker', 'Echtzeit per Server-Push – kein Neuladen'].map((t) => (
               <li key={t} className="flex items-center gap-3 text-sm text-zinc-300"><span className="grid h-5 w-5 place-items-center rounded-full bg-cyan-500/15"><Check className="h-3 w-3 text-cyan-300" /></span>{t}</li>
@@ -206,16 +206,16 @@ export default function Landing() {
         <motion.div style={{ y }} className="relative mx-auto max-w-6xl px-4 text-center sm:px-6">
           <motion.a href="#features" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             className="mx-auto inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/[0.08] py-1 pl-1 pr-3 text-xs text-amber-200 backdrop-blur hover:bg-amber-500/15 transition">
-            <span className="rounded-full bg-amber-400 px-2 py-0.5 font-semibold text-ink-950">NEU</span>
-            100 % kostenlos · für ETS2 & ATS <ArrowRight className="h-3 w-3" />
+            <span className="hazard h-3 w-6 rounded-full" />
+            Für ETS2 &amp; ATS · kostenlos <ArrowRight className="h-3 w-3" />
           </motion.a>
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="mx-auto mt-7 max-w-4xl font-display text-[44px] font-bold leading-[1.02] tracking-[-0.03em] text-white sm:text-6xl md:text-7xl">
-            Deine Spedition.<br /><span className="text-gradient">Endlich richtig abgerechnet.</span>
+            <span className="uppercase">Fahren. Abliefern.</span><br /><span className="uppercase text-amber-400">Lohnzettel.</span>
           </motion.h1>
           <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.8 }}
             className="mx-auto mt-6 max-w-2xl text-base text-zinc-400 sm:text-lg">
-            Frachtwerk erfasst jede Tour automatisch, rechnet Löhne nach <em className="not-italic text-zinc-200">deinen</em> Regeln ab und macht aus deiner virtuellen Spedition ein Team, das gerne fährt. Ohne Abo. Ohne Haken.
+            Frachtwerk erfasst jede Tour aus ETS2 und ATS, rechnet den Lohn nach euren Regeln ab und zeigt eure Fahrer live auf der Karte. Kostenlos, für jede Spedition.
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.8 }} className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button to="/register" size="lg" className="w-full sm:w-auto">Spedition gründen <ArrowRight className="h-4 w-4" /></Button>
@@ -229,6 +229,7 @@ export default function Landing() {
         </motion.div>
       </section>
 
+      <div className="hazard h-1.5 opacity-90" />
       {/* LIVE-ZAHLEN */}
       <section className="relative border-y border-white/[0.05] bg-white/[0.015]">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-px px-4 sm:px-6 md:grid-cols-4">
@@ -251,7 +252,7 @@ export default function Landing() {
 
       {/* FEATURES */}
       <section id="features" className="relative mx-auto max-w-6xl scroll-mt-24 px-4 py-28 sm:px-6">
-        <SectionTitle eyebrow="Alles drin" title={<>Gebaut für Speditionen,<br className="hidden sm:block" /> die es ernst meinen.</>} text="Kein Flickenteppich aus Google-Sheets, Bots und Formularen. Ein Werkzeug, das alles kann – und dabei gut aussieht." />
+        <SectionTitle eyebrow="Alles drin" title="Was Frachtwerk kann" text="Fahrtenbuch, Lohnlauf, Firmenkonto, Live-Map und Team-Verwaltung an einer Stelle." />
         <div className="mt-14 grid gap-4 md:grid-cols-3">
           {features.map((f, i) => (
             <motion.div key={f.title} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ delay: (i % 3) * 0.08, duration: 0.6 }}
@@ -270,7 +271,7 @@ export default function Landing() {
               {i === 3 && (
                 <div className="mt-6 flex flex-wrap gap-2">
                   {['Erste Ladung', 'Langstrecke', 'Samthandschuh', 'Schwergewicht', 'Kontinental'].map((a, k) => (
-                    <span key={a} className={cx('rounded-full px-3 py-1 text-xs ring-1', k < 3 ? 'bg-amber-500/10 text-amber-200 ring-amber-500/30' : 'bg-white/[0.03] text-zinc-500 ring-white/10')}>🏆 {a}</span>
+                    <span key={a} className={cx('rounded-full px-3 py-1 text-xs ring-1', k < 3 ? 'bg-amber-500/10 text-amber-200 ring-amber-500/30' : 'bg-white/[0.03] text-zinc-500 ring-white/10')}> {a}</span>
                   ))}
                 </div>
               )}
@@ -284,7 +285,7 @@ export default function Landing() {
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-[500px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-500/[0.05] blur-[120px]" />
         <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-4 sm:px-6 lg:grid-cols-2">
           <div>
-            <SectionTitle left eyebrow="Die Abrechnung" title={<>Transparent bis auf<br />den letzten Cent.</>} text="Jede Firma bestimmt ihre eigene Lohnformel. Frachtwerk rechnet jede Tour sofort ab und zeigt jedem Fahrer genau, wie sein Lohn zustande kommt. Schluss mit Diskussionen im Discord." />
+            <SectionTitle left eyebrow="Die Abrechnung" title={<>Jeder Euro<br />nachvollziehbar.</>} text="Jede Firma bestimmt ihre eigene Lohnformel. Frachtwerk rechnet jede Tour sofort ab und zeigt jedem Fahrer genau, wie sein Lohn zustande kommt. Schluss mit Diskussionen im Discord." />
             <ul className="mt-8 space-y-3">
               {['Kilometergeld + prozentualer Frachtanteil', 'Schadenfrei-Bonus & Abzug pro Schadensprozent', 'Kraftstoff zahlt Firma oder Fahrer', 'Tempolimit-Strafen & Bußgelder', 'Prüfung durch Disponenten oder Auto-Freigabe', 'Monatlicher Lohnlauf mit druckbaren Lohnzetteln'].map((t) => (
                 <li key={t} className="flex items-center gap-3 text-sm text-zinc-300"><span className="grid h-5 w-5 place-items-center rounded-full bg-amber-500/15"><Check className="h-3 w-3 text-amber-400" /></span>{t}</li>
@@ -295,7 +296,7 @@ export default function Landing() {
             <div className="absolute -inset-4 rounded-[32px] bg-gradient-to-br from-amber-500/20 via-transparent to-cyan-500/20 blur-2xl" />
             <div className="relative rounded-3xl border border-white/10 bg-ink-900/90 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
               <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3"><CompanyBadge tag="NLX" hue={28} size={44} /><div><div className="font-display font-semibold text-white">Lohnzettel · Tour #2841</div><div className="text-xs text-zinc-500">Hamburg → Wien · Maschinenteile · 18,2 t</div></div></div>
+                <div className="flex items-center gap-3"><CompanyBadge tag="NLX" hue={28} size={44} /><div><div className="font-display font-semibold text-white">Lohnzettel · Tour #2841</div><div className="mt-1.5 flex items-center gap-1.5 text-xs text-zinc-500"><span className="sign text-[11px]">Hamburg</span><span>→</span><span className="sign text-[11px]">Wien</span><span className="ml-1">Maschinenteile · 18,2 t</span></div></div></div>
                 <span className="rounded-md bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-300 ring-1 ring-emerald-500/20">Freigegeben</span>
               </div>
               <div className="mt-6 space-y-2.5 font-mono text-sm">
@@ -314,7 +315,7 @@ export default function Landing() {
 
       {/* SO GEHT'S */}
       <section id="so-gehts" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-28 sm:px-6">
-        <SectionTitle eyebrow="In 3 Schritten" title="Vom Discord-Chaos zur echten Spedition." text="Der Umzug dauert kürzer als eine Fahrt von Calais nach Duisburg." />
+        <SectionTitle eyebrow="In 3 Schritten" title="In drei Schritten startklar" text="Eine Fahrt von Calais nach Duisburg dauert länger." />
         <div className="relative mt-16 grid gap-6 md:grid-cols-3">
           <div className="pointer-events-none absolute left-[16%] right-[16%] top-8 hidden h-px bg-gradient-to-r from-transparent via-amber-500/40 to-transparent md:block" />
           {[
@@ -334,7 +335,7 @@ export default function Landing() {
 
       {/* VERGLEICH */}
       <section className="mx-auto max-w-4xl px-4 py-20 sm:px-6">
-        <SectionTitle eyebrow="Warum wechseln?" title="Mehr drin. Nichts zu zahlen." />
+        <SectionTitle eyebrow="Warum wechseln?" title="Frachtwerk im Vergleich" />
         <div className="mt-12 overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.02]">
           <div className="grid grid-cols-[1fr_90px_90px] items-center border-b border-white/[0.06] px-5 py-4 text-xs sm:grid-cols-[1fr_140px_140px] sm:px-8">
             <span className="label">Funktion</span>
@@ -392,10 +393,10 @@ export default function Landing() {
       <section className="relative overflow-hidden px-4 pb-32 pt-10 text-center sm:px-6">
         <div className="pointer-events-none absolute left-1/2 top-1/2 h-[400px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-500/15 blur-[120px]" />
         <div className="relative">
-          <h2 className="mx-auto max-w-3xl font-display text-4xl font-bold tracking-tight text-white sm:text-6xl">Bereit für die <span className="text-gradient">nächste Fuhre?</span></h2>
+          <h2 className="mx-auto max-w-3xl font-display text-4xl font-bold tracking-tight text-white sm:text-6xl">Leg deine Spedition an.</h2>
           <p className="mx-auto mt-5 max-w-xl text-zinc-400">Gründe deine Spedition in unter fünf Minuten – oder schließ dich einer der Firmen im Verzeichnis an.</p>
           <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
-            <Button to="/register" size="lg">Jetzt kostenlos starten <ArrowRight className="h-4 w-4" /></Button>
+            <Button to="/register" size="lg">Spedition anlegen <ArrowRight className="h-4 w-4" /></Button>
             <Button to="/companies" size="lg" variant="outline">Firmen entdecken</Button>
           </div>
         </div>

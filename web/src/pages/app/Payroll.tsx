@@ -31,7 +31,7 @@ export default function Payroll() {
 
   const run = async () => {
     setBusy(true);
-    try { await api('/company/payroll', { body: { period } }); toast(`Lohnlauf ${monthName(period)} abgeschlossen 💸`); setConfirmOpen(false); reload(); reloadHist(); }
+    try { await api('/company/payroll', { body: { period } }); toast(`Lohnlauf ${monthName(period)} abgeschlossen`); setConfirmOpen(false); reload(); reloadHist(); }
     catch (e: any) { toast(e.message, 'err'); } finally { setBusy(false); }
   };
 
