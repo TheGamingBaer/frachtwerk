@@ -25,7 +25,7 @@ export default function Pair() {
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-emerald-500/15"><CheckCircle2 className="h-8 w-8 text-emerald-400" /></div>
             <h1 className="mt-5 font-display text-2xl font-semibold text-white">Verbunden!</h1>
-            <p className="mt-2 text-sm text-zinc-400">Der Frachtwerk-Client auf deinem PC ist jetzt mit deinem Konto verknüpft. Du kannst dieses Fenster schließen, ETS2 starten und losfahren.</p>
+            <p className="mt-2 text-sm text-zinc-400">Die Frachtwerk-App auf deinem PC ist jetzt mit deinem Konto verknüpft. Starte ETS2 und fahr los – deine Touren werden automatisch erfasst.</p>
             <Button to="/app/map" className="mt-6">Zur Live-Map</Button>
           </motion.div>
         ) : (

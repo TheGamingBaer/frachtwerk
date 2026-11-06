@@ -23,19 +23,25 @@ Ich wollte kein weiteres Tool mit Premium-Abo bauen, sondern eins, zu dem Firmen
 | **Community** | Konvois/Events mit Zusagen, Firmen-News mit Anpinnen |
 | **Fuhrpark** | LKW kaufen und zuweisen, der Kilometerstand läuft automatisch mit |
 
-## Sofort testen unter Windows (ohne Installation)
+## Frachtwerk-App für Windows (`Frachtwerk.exe`)
 
-1. **`Frachtwerk-Server.exe`** und **`Frachtwerk-Client.exe`** in denselben Ordner legen, Server doppelklicken.
-   Fragen: *Demo-Daten?* → `j`, *Client auch starten?* → Enter. Der Browser öffnet sich mit dem Demo-Login.
-2. Der Client findet den Server von selbst und öffnet eine Seite mit einem Code → **„Verbinden“** klicken. Kein Token-Kopieren.
-3. Fehlt der Funbit Telemetry Server, lädt der Client ihn auf Nachfrage herunter und startet ihn. Dort einmalig **„Install“** klicken.
-4. ETS2 starten und fahren. Ab dann reicht ein Doppelklick auf den Server.
+Eine Datei für alle – ohne Konsolenfenster, mit eigenem Symbol:
 
-Alle Daten liegen im Ordner `Frachtwerk-Daten` neben der Server-.exe (Datenbank, Backups, `einstellungen.env`).
-Windows SmartScreen meldet die Programme evtl. als unbekannt („Weitere Informationen“ → „Trotzdem ausführen“), weil sie nicht kostenpflichtig signiert sind.
+- **Installiert sich beim ersten Doppelklick selbst** (Startmenü, Desktop, „Apps“-Liste zum Deinstallieren, Autostart). An die Taskleiste anheften: Rechtsklick → „An Taskleiste anheften“.
+- **Läuft im Hintergrund** mit Symbol neben der Uhr (Status, Live-Map, Autostart, Beenden) und meldet Tourstart & Ablieferung als Windows-Benachrichtigung.
+- **Öffnet Frachtwerk als eigenes App-Fenster** (Edge-App-Modus). Ein erneuter Klick auf das Symbol holt nur das Fenster nach vorn.
+- **Fahrer müssen nichts eintippen:** Lädt ein Fahrer die App über *App herunterladen* auf eurer Frachtwerk-Seite, steckt die Server-Adresse schon in der Datei. Doppelklick → „Verbinden“ → fertig.
+- **Spieldaten automatisch:** Der Funbit Telemetry Server wird heruntergeladen und gestartet – nur beim ersten Mal „Install“ klicken.
+- **Aktualisiert sich selbst**, sobald auf dem Server eine neuere `Frachtwerk.exe` liegt.
+- **Eigene Spedition auf diesem PC:** Im Startfenster „Eigene Spedition auf diesem PC starten“ – startet die komplette Plattform lokal (optional mit Demo-Daten und Live-Simulation).
 
-Startoptionen des Servers: `--demo` (Demo-Daten ohne Nachfrage), `--simulate`, `--no-simulate`, `--no-browser`.
-Damit andere über das Internet mitfahren können, braucht der Server eine öffentliche Adresse – siehe [Kostenlos hosten](#kostenlos-hosten).
+**Für Betreiber:** `Frachtwerk.exe` in den Ordner `downloads/` des Servers legen (bei `Frachtwerk-Server.exe`: einfach daneben). Dann bieten die Seite *App herunterladen* und das Auto-Update sie an.
+
+Startoptionen: `--portable` (nicht installieren), `--background` (ohne Fenster starten), `--uninstall`.
+Protokoll bei Problemen: `%LOCALAPPDATA%\Frachtwerk\frachtwerk.log`.
+Windows SmartScreen meldet die App evtl. als unbekannt („Weitere Informationen“ → „Trotzdem ausführen“), weil sie nicht kostenpflichtig signiert ist.
+
+`Frachtwerk-Server.exe` ist der reine Server mit Konsolenfenster (z. B. für einen Server-PC). Startoptionen: `--demo`, `--simulate`, `--no-simulate`, `--no-browser`.
 
 ## Schnellstart (lokal)
 
@@ -86,7 +92,7 @@ Mit `--demo` simuliert er eine komplette Tour, damit man die Einrichtung ohne Sp
 
 ```bash
 npm run setup                      # Web-App bauen
-cd packaging && npm ci && node build.mjs     # → dist-exe/Frachtwerk-Server.exe, Frachtwerk-Client.exe
+cd packaging && npm ci && node build.mjs     # → dist-exe/Frachtwerk.exe, Frachtwerk-Server.exe
 ```
 Benötigt Node 22.23.4 (muss zur eingebetteten `node.exe` passen). Auf GitHub baut `.github/workflows/release.yml` die Programme bei jedem Tag `v*` automatisch und hängt sie an das Release.
 

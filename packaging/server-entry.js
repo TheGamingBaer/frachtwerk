@@ -77,12 +77,7 @@ const open = (url) => exec(process.platform === 'win32' ? `start "" "${url}"` : 
   if (hasDemo && (demo || process.argv.includes('--simulate') || (!process.argv.includes('--no-simulate') && ['j', 'ja', 'y'].includes(await ask('Live-Simulation starten (Demo-Fahrer fahren über die Karte)? [j/N]: '))))) {
     require('../server/scripts/simulate').simulate({ server: url, drivers: 8, speed: 9 });
   }
-  // Client gleich mitstarten, wenn er daneben liegt (Windows)
-  const clientExe = path.join(BASE, 'Frachtwerk-Client.exe');
-  if (process.platform === 'win32' && fs.existsSync(clientExe) && !process.argv.includes('--no-client')) {
-    const a = await ask('Frachtwerk-Client (für ETS2) auch starten? [J/n]: ');
-    if (a !== 'n' && a !== 'nein') exec(`start "Frachtwerk Client" "${clientExe}"`, { cwd: BASE }, () => {});
-  }
+  if (fs.existsSync(path.join(BASE, 'Frachtwerk.exe'))) console.log('  📦 Frachtwerk.exe liegt daneben – deine Fahrer laden sie unter „App herunterladen“ herunter.');
   doneAsking();
   console.log(`\n  👉 Öffne \x1b[1m${url}\x1b[0m im Browser${hasDemo ? ' (Demo-Login: demo / demo1234)' : ''}`);
   console.log('  Fenster offen lassen, solange Frachtwerk laufen soll. Beenden mit Strg+C.\n');

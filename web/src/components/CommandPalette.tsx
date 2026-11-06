@@ -44,7 +44,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       ...(can(role, 'admin') ? [{ id: 'p-set', group: 'Seiten', label: 'Firmeneinstellungen', hint: 'Lohnformel', icon: Settings, to: '/app/company/settings' }] : []),
     ] : [{ id: 'p-ob', group: 'Seiten', label: 'Firma gründen oder beitreten', icon: Plus, to: '/app/onboarding' }]),
     { id: 'p-prof', group: 'Seiten', label: 'Profil & Lohnzettel', icon: UserRound, to: '/app/profile' },
-    { id: 'p-cli', group: 'Seiten', label: 'Client & Token', icon: Download, to: '/app/client' },
+    { id: 'p-cli', group: 'Seiten', label: 'App herunterladen', hint: 'Frachtwerk für Windows', icon: Download, to: '/app/client' },
     { id: 'p-dir', group: 'Seiten', label: 'Firmenverzeichnis', icon: Globe2, to: '/companies' },
   ];
 

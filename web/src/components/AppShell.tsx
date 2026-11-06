@@ -51,7 +51,7 @@ export function AppShell() {
     ] } : { title: 'Firma', items: [{ to: '/app/onboarding', icon: Building2, label: 'Firma finden / gründen' }] },
     { title: 'Konto', items: [
       { to: '/app/profile', icon: UserRound, label: 'Profil & Lohnzettel' },
-      { to: '/app/client', icon: Download, label: 'Client & Token' },
+      { to: '/app/client', icon: Download, label: 'App herunterladen' },
       ...(me?.user.is_admin ? [{ to: '/app/admin', icon: ShieldCheck, label: 'Plattform-Admin' }] : []),
     ] },
   ];
