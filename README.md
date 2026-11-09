@@ -29,7 +29,7 @@ Eine Datei für alle – ohne Konsolenfenster, mit eigenem Symbol:
 
 - **Installiert sich beim ersten Doppelklick selbst** (Startmenü, Desktop, „Apps“-Liste zum Deinstallieren, Autostart). An die Taskleiste anheften: Rechtsklick → „An Taskleiste anheften“.
 - **Läuft im Hintergrund** mit Symbol neben der Uhr (Status, Live-Map, Autostart, Beenden) und meldet Tourstart & Ablieferung als Windows-Benachrichtigung.
-- **Öffnet Frachtwerk als eigenes App-Fenster** (Edge-App-Modus). Ein erneuter Klick auf das Symbol holt nur das Fenster nach vorn.
+- **Eigenes App-Fenster** (WebView2, in Windows 10/11 eingebaut) mit Frachtwerk-Symbol in der Taskleiste – kein Browser. Ein erneuter Klick holt das Fenster nach vorn. Fehlt WebView2, öffnet sich Frachtwerk im Edge-App-Modus.
 - **Fahrer müssen nichts eintippen:** Lädt ein Fahrer die App über *App herunterladen* auf eurer Frachtwerk-Seite, steckt die Server-Adresse schon in der Datei. Doppelklick → „Verbinden“ → fertig.
 - **Spieldaten automatisch:** Der Funbit Telemetry Server wird heruntergeladen und gestartet – nur beim ersten Mal „Install“ klicken.
 - **Discord-Status (Rich Presence):** Freunde sehen in Discord „Spielt Frachtwerk – Prag → München · noch 183 km“. Einmalig im Discord Developer Portal eine Anwendung anlegen und die Application ID unter Admin → *Website* eintragen. Abschaltbar im Tray-Menü.

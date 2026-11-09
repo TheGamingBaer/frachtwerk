@@ -91,10 +91,23 @@ webAssets['web/__agent.js'] = join(ROOT, 'client', 'agent.js'); manifest['/__age
 writeFileSync(join(TMP, 'manifest.json'), JSON.stringify(manifest));
 webAssets['manifest.json'] = join(TMP, 'manifest.json');
 
+// ---------- Eigenes Fenster (C#/WebView2) ----------
+const WIN_DIR = join(HERE, 'window', 'bin', 'Release', 'net48');
+execFileSync('dotnet', ['build', join(HERE, 'window', 'FrachtwerkWindow.csproj'), '-c', 'Release', '-nologo', '-v', 'q', `-p:Version=${VERSION}`], { stdio: ['ignore', 'ignore', 'inherit'] });
+const windowAssets = {
+  'window/FrachtwerkFenster.exe': join(WIN_DIR, 'FrachtwerkFenster.exe'),
+  'window/FrachtwerkFenster.exe.config': join(WIN_DIR, 'FrachtwerkFenster.exe.config'),
+  'window/Microsoft.Web.WebView2.Core.dll': join(WIN_DIR, 'Microsoft.Web.WebView2.Core.dll'),
+  'window/Microsoft.Web.WebView2.WinForms.dll': join(WIN_DIR, 'Microsoft.Web.WebView2.WinForms.dll'),
+  'window/WebView2Loader.dll': join(WIN_DIR, 'runtimes', 'win-x64', 'native', 'WebView2Loader.dll'),
+};
+for (const f of Object.values(windowAssets)) if (!existsSync(f)) { console.error('Fehlt:', f); process.exit(1); }
+console.log('✔ Fenster (WebView2) gebaut');
+
 // ---------- Desktop-App ----------
 await bundle(join(HERE, 'app', 'main.js'), join(TMP, 'app.cjs'));
 const appBlob = seaBlob('app', join(TMP, 'app.cjs'), {
-  ...webAssets,
+  ...webAssets, ...windowAssets,
   'setup.html': join(HERE, 'app', 'setup.html'), 'tray.ps1': join(HERE, 'app', 'tray.ps1'),
   'icon.ico': ICON, 'icon.png': join(HERE, 'assets', 'icon-256.png'),
 });

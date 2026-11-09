@@ -7,3 +7,5 @@ dist-exe/
 packaging/.cache/
 packaging/node_modules/
 downloads/
+packaging/window/bin/
+packaging/window/obj/

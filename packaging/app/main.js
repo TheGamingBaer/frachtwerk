@@ -33,6 +33,7 @@ function log(...m) {
   try { if (fs.existsSync(LOG_FILE) && fs.statSync(LOG_FILE).size > 1_000_000) fs.renameSync(LOG_FILE, LOG_FILE + '.1'); fs.appendFileSync(LOG_FILE, line); } catch {}
   if (!sea || !WIN) process.stdout.write(line);
 }
+const appStartedAt = Date.now();
 process.on('uncaughtException', (e) => log('FEHLER', e.stack || e.message));
 process.on('unhandledRejection', (e) => log('FEHLER', e?.stack || e));
 
@@ -108,20 +109,53 @@ function findBrowser() {
   for (const base of pf) cands.push(path.join(base, 'Microsoft', 'Edge', 'Application', 'msedge.exe'), path.join(base, 'Google', 'Chrome', 'Application', 'chrome.exe'));
   return cands.find((c) => { try { return fs.existsSync(c); } catch { return false; } }) || null;
 }
+// Eigenes Fenster (FrachtwerkFenster.exe mit WebView2). Fallback: Edge/Chrome im App-Modus.
+const WINDOW_FILES = ['FrachtwerkFenster.exe', 'FrachtwerkFenster.exe.config', 'Microsoft.Web.WebView2.Core.dll', 'Microsoft.Web.WebView2.WinForms.dll', 'WebView2Loader.dll'];
+const WINDOW_DIR = path.join(APPDATA, 'Fenster', 'bin');
+let windowProc = null, windowBroken = false;
+function windowExe() {
+  if (!WIN || !sea || windowBroken) return null;
+  try {
+    const stamp = path.join(WINDOW_DIR, 'version.txt');
+    if (!fs.existsSync(stamp) || fs.readFileSync(stamp, 'utf8') !== APP_VERSION) {
+      fs.mkdirSync(WINDOW_DIR, { recursive: true });
+      for (const f of WINDOW_FILES) fs.writeFileSync(path.join(WINDOW_DIR, f), asset(`window/${f}`));
+      fs.writeFileSync(stamp, APP_VERSION);
+    }
+    return path.join(WINDOW_DIR, 'FrachtwerkFenster.exe');
+  } catch (e) { log('Fenster konnte nicht vorbereitet werden:', e.message); return null; }
+}
+function openBrowserWindow(url) {
+  const b = findBrowser();
+  if (b) { cp.spawn(b, [`--app=${url}`, '--window-size=1360,880'], { detached: true, stdio: 'ignore' }).unref(); return; }
+  // windowsVerbatimArguments: sonst verfälscht Node die Anführungszeichen für cmd.exe
+  cp.spawn('cmd.exe', ['/d', '/s', '/c', `"start "" "${url}""`], { windowsHide: true, detached: true, stdio: 'ignore', windowsVerbatimArguments: true }).unref();
+}
 function openWindow(url) {
   log('Öffne Fenster:', url);
-  if (WIN) {
-    const b = findBrowser();
-    if (b) { cp.spawn(b, [`--app=${url}`, '--window-size=1360,880'], { detached: true, stdio: 'ignore' }).unref(); return; }
-    // windowsVerbatimArguments: sonst verfälscht Node die Anführungszeichen für cmd.exe
-    cp.spawn('cmd.exe', ['/d', '/s', '/c', `"start "" "${url}""`], { windowsHide: true, detached: true, stdio: 'ignore', windowsVerbatimArguments: true }).unref();
-  } else cp.exec(`${process.platform === 'darwin' ? 'open' : 'xdg-open'} "${url}"`, () => {});
+  if (!WIN) { cp.exec(`${process.platform === 'darwin' ? 'open' : 'xdg-open'} "${url}"`, () => {}); return; }
+  if (windowProc && windowProc.exitCode === null) { try { windowProc.stdin.write(url + '\n'); return; } catch {} }
+  const exe = windowExe();
+  if (!exe) return openBrowserWindow(url);
+  const started = Date.now();
+  try {
+    windowProc = cp.spawn(exe, ['--url', url, '--data', path.join(APPDATA, 'Fenster')], { stdio: ['pipe', 'ignore', 'ignore'] });
+    windowProc.stdin.on('error', () => {});
+    windowProc.on('error', (e) => { log('Fenster-Fehler:', e.message); windowBroken = true; windowProc = null; openBrowserWindow(url); });
+    windowProc.on('exit', (code) => {
+      windowProc = null;
+      if (code !== 0 && Date.now() - started < 20_000) { // WebView2 fehlt (3) / Start gescheitert
+        log('Eigenes Fenster nicht verfügbar (Code', code, ') – nutze Browser');
+        windowBroken = true; openBrowserWindow(url);
+      }
+    });
+  } catch (e) { log('Fenster-Start fehlgeschlagen:', e.message); windowBroken = true; openBrowserWindow(url); }
 }
 const setupUrl = (hash = '') => `http://127.0.0.1:${PORT}/${hash}`;
 const appUrl = (p = '/app') => (cfg.server && cfg.token ? cfg.server + p : setupUrl());
 
 // ---------------- Zustand ----------------
-let presence = null, presenceInfo = { company: null, siteName: 'Frachtwerk', logo: null }, jobStartedAt = null, trayFails = 0, agent = null, pairing = null, pairAbort = null, hostInfo = null, trayProc = null, quitting = false, updateVersion = null;
+let presenceRetry = null, presence = null, presenceInfo = { company: null, siteName: 'Frachtwerk', logo: null }, jobStartedAt = null, trayFails = 0, agent = null, pairing = null, pairAbort = null, hostInfo = null, trayProc = null, quitting = false, updateVersion = null;
 const notifications = [];
 const notify = (title, text) => { notifications.push({ title, text }); if (notifications.length > 5) notifications.shift(); log('Hinweis:', title, '–', text); };
 const eur = (n) => (n || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
@@ -172,12 +206,23 @@ async function setupPresence() {
     presenceInfo.logo = logo.startsWith('https://') ? logo : null; // Discord lädt nur öffentliche https-Bilder
   } catch {}
   try { presenceInfo.company = (await agent?.ping())?.company || null; } catch {}
-  if (!/^\d{15,22}$/.test(String(appId || ''))) { log('Discord-Status: keine Application-ID hinterlegt (Admin → Website)'); return; }
+  if (!/^\d{15,22}$/.test(String(appId || ''))) {
+    presenceInfo.missingId = true;
+    log('Discord-Status: keine Application-ID hinterlegt (Admin → Website) – prüfe in 5 Minuten erneut');
+    clearTimeout(presenceRetry); presenceRetry = setTimeout(setupPresence, 5 * 60_000);
+    return;
+  }
+  presenceInfo.missingId = false;
   presence = createPresence({ clientId: appId, log });
 }
 function presenceActivity() {
   const a = agent?.status(); if (!a) return null;
-  if (a.state !== 'driving' && a.state !== 'idle') return null; // nur während das Spiel läuft
+  if (a.state === 'auth' || !cfg.token) return null;
+  if (a.state !== 'driving' && a.state !== 'idle') {   // App läuft, Spiel (noch) nicht
+    return { details: 'Im Frachtwerk-Cockpit', state: clip(presenceInfo.company ? `Spedition ${presenceInfo.company}` : 'Bereit für die nächste Tour'),
+      timestamps: { start: appStartedAt }, assets: { large_image: presenceInfo.logo || 'logo', large_text: clip(presenceInfo.siteName) },
+      ...(cfg.server?.startsWith('https://') ? { buttons: [{ label: `${presenceInfo.siteName} öffnen`.slice(0, 32), url: cfg.server }] } : {}) };
+  }
   const game = /ats|american/i.test(a.game || '') ? 'ATS' : 'ETS2';
   const j = a.job;
   const act = j
@@ -311,7 +356,7 @@ const control = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/ping') return json(200, { ok: true, version: APP_VERSION });
     if (req.method === 'GET' && url.pathname === '/state') {
       return json(200, { version: APP_VERSION, windows: WIN, configured: !!(cfg.server && cfg.token), server: cfg.server || null, user: cfg.user || null, knownServer: cfg.server || embeddedServer() || null,
-        pairing: pairing && { code: pairing.code, url: pairing.url }, agent: agent?.status() || null, autostart: !!cfg.autostart, discord: cfg.discordPresence !== false, discordConnected: !!presence?.connected, host: hostInfo, update: updateVersion });
+        pairing: pairing && { code: pairing.code, url: pairing.url }, agent: agent?.status() || null, autostart: !!cfg.autostart, discord: cfg.discordPresence !== false, discordConnected: !!presence?.connected, discordMissingId: !!presenceInfo.missingId, host: hostInfo, update: updateVersion });
     }
     if (req.method === 'GET' && url.pathname === '/tray/state') return json(200, trayState());
     if (req.method === 'POST' && url.pathname === '/tray/action') { await action(url.searchParams.get('name')); return json(200, { ok: true }); }
@@ -344,6 +389,7 @@ function startTray() {
 function quit() {
   if (quitting) return; quitting = true;
   presence?.stop();
+  try { windowProc?.stdin.write('quit\n'); } catch {}
   log('Beende Frachtwerk');
   agent?.stop();
   setTimeout(() => { try { trayProc?.kill(); } catch {} process.exit(0); }, 2500); // Tray holt sich vorher das Beenden-Signal

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Eigenes App-Fenster für Frachtwerk (WebView2). .NET Framework 4.8 ist auf Windows 10/11 vorinstalliert. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>FrachtwerkFenster</AssemblyName>
+    <RootNamespace>Frachtwerk</RootNamespace>
+    <ApplicationIcon>../assets/icon.ico</ApplicationIcon>
+    <Product>Frachtwerk</Product>
+    <AssemblyTitle>Frachtwerk</AssemblyTitle>
+    <Company>Frachtwerk</Company>
+    <Version>1.2.0</Version>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <SatelliteResourceLanguages>de</SatelliteResourceLanguages>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net48" Version="1.0.3" PrivateAssets="all" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Drawing" />
+  </ItemGroup>
+</Project>

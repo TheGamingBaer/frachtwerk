@@ -147,7 +147,7 @@ function render() {
     $('[data-funbitbtn]').classList.toggle('hidden', a.state !== 'no-telemetry' || !state.windows);
     $('[data-switch]').classList.toggle('on', !!state.autostart);
     $('[data-dswitch]').classList.toggle('on', !!state.discord);
-    $('[data-discordtext]').textContent = !state.discord ? 'Aus' : state.discordConnected ? 'Verbunden – Freunde sehen deine aktuelle Tour.' : 'Wartet auf Discord (Discord muss laufen).';
+    $('[data-discordtext]').textContent = !state.discord ? 'Aus' : state.discordMissingId ? 'Noch nicht eingerichtet: Ein Admin muss die Discord Application ID unter Plattform-Admin → Website eintragen.' : state.discordConnected ? 'Verbunden – Freunde sehen, dass du Frachtwerk nutzt.' : 'Wartet auf Discord (die Discord-App muss auf diesem PC laufen).';
     $('[data-hostrow]').classList.toggle('hidden', !state.host);
     if (state.host) $('[data-hosttext]').textContent = state.host.urls.join('  ·  ');
     $('[data-version]').textContent = `Version ${state.version}${state.update ? ` · Update ${state.update} wird installiert …` : ''}`;
