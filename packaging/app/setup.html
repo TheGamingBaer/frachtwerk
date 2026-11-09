@@ -107,6 +107,7 @@
     <div class="row"><span class="dot" data-dot="game"></span><div class="t"><b data-gametitle>Spiel</b><span data-gametext></span></div></div>
     <div class="row hidden" data-hostrow><span class="dot ok"></span><div class="t"><b>Server läuft auf diesem PC</b><span data-hosttext></span></div></div>
     <button class="btn ghost hidden" data-act="funbit" data-funbitbtn>Spieldaten einrichten (Funbit)</button>
+    <div class="row" style="cursor:pointer" data-act="discord"><div class="t"><b>Discord-Status anzeigen</b><span data-discordtext>Freunde sehen deine aktuelle Tour in Discord.</span></div><span class="switch" data-dswitch></span></div>
     <div class="row" style="cursor:pointer" data-act="autostart"><div class="t"><b>Mit Windows starten</b><span>Touren werden immer erfasst, ohne dass du daran denken musst.</span></div><span class="switch" data-switch></span></div>
     <div class="grid2">
       <button class="btn" data-act="open">Frachtwerk öffnen</button>
@@ -145,6 +146,8 @@ function render() {
     g.className = 'dot ' + cls; $('[data-gametitle]').textContent = title; $('[data-gametext]').textContent = a.text || '';
     $('[data-funbitbtn]').classList.toggle('hidden', a.state !== 'no-telemetry' || !state.windows);
     $('[data-switch]').classList.toggle('on', !!state.autostart);
+    $('[data-dswitch]').classList.toggle('on', !!state.discord);
+    $('[data-discordtext]').textContent = !state.discord ? 'Aus' : state.discordConnected ? 'Verbunden – Freunde sehen deine aktuelle Tour.' : 'Wartet auf Discord (Discord muss laufen).';
     $('[data-hostrow]').classList.toggle('hidden', !state.host);
     if (state.host) $('[data-hosttext]').textContent = state.host.urls.join('  ·  ');
     $('[data-version]').textContent = `Version ${state.version}${state.update ? ` · Update ${state.update} wird installiert …` : ''}`;

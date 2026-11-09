@@ -21,10 +21,11 @@ const DEFAULTS = {
   gallery_title: 'Von der Straße',
   gallery: [],
   discord_url: '',
+  discord_app_id: '',
   impressum: '',
   datenschutz: '',
 };
-const TEXT_LIMITS = { site_name: 40, logo_url: 200, hero_kicker: 80, hero_title: 80, hero_accent: 80, hero_text: 400, hero_image: 200, gallery_title: 60, discord_url: 200, impressum: 8000, datenschutz: 30000 };
+const TEXT_LIMITS = { site_name: 40, logo_url: 200, hero_kicker: 80, hero_title: 80, hero_accent: 80, hero_text: 400, hero_image: 200, gallery_title: 60, discord_url: 200, discord_app_id: 22, impressum: 8000, datenschutz: 30000 };
 
 function readSite() {
   const out = { ...DEFAULTS };
@@ -76,6 +77,7 @@ router.put('/api/admin/site', admin, express.json({ limit: '200kb' }), (req, res
     if (b[k] === undefined) continue;
     let v = String(b[k] ?? '').slice(0, max);
     if (['logo_url', 'hero_image', 'discord_url'].includes(k)) v = safeUrl(v);
+    if (k === 'discord_app_id' && !/^(\d{15,22})?$/.test(v)) return res.status(400).json({ error: 'Die Discord Application ID besteht nur aus Ziffern (15–22 Stellen).' });
     save(k, v);
   }
   if (Array.isArray(b.gallery)) save('gallery', b.gallery.slice(0, 24).map((g) => ({ url: safeUrl(g?.url), caption: String(g?.caption || '').slice(0, 120) })).filter((g) => g.url));

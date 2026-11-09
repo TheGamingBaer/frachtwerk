@@ -113,6 +113,9 @@ export function SiteEditor() {
           <div className="space-y-4">
             <Field label="Name der Plattform"><Input value={f.site_name} onChange={set('site_name')} maxLength={40} /></Field>
             <Field label="Discord-Einladung (optional)" hint="Erscheint in der Galerie und im Footer."><Input value={f.discord_url} onChange={set('discord_url')} placeholder="https://discord.gg/…" /></Field>
+            <Field label="Discord Application ID (für den Discord-Status)" hint={<>Damit zeigt Discord bei deinen Fahrern „Spielt {f.site_name || 'Frachtwerk'}“ mit aktueller Tour. Einmalig: <a className="text-amber-400 hover:underline" href="https://discord.com/developers/applications" target="_blank" rel="noreferrer">Discord Developer Portal</a> → „New Application“, Name = Plattformname → „Application ID“ kopieren. Optional unter „Rich Presence → Art Assets“ ein Bild mit dem Namen <code className="rounded bg-white/5 px-1">logo</code> hochladen.</>}>
+              <Input value={f.discord_app_id} onChange={set('discord_app_id')} placeholder="z. B. 1234567890123456789" inputMode="numeric" className="font-mono" />
+            </Field>
           </div>
           <ImageDrop label="Logo (quadratisch)" value={f.logo_url} onChange={(u) => setF({ ...f, logo_url: u })} aspect="aspect-square" hint="PNG mit transparentem Hintergrund, mind. 256 × 256" />
         </div>

@@ -32,6 +32,7 @@ Eine Datei für alle – ohne Konsolenfenster, mit eigenem Symbol:
 - **Öffnet Frachtwerk als eigenes App-Fenster** (Edge-App-Modus). Ein erneuter Klick auf das Symbol holt nur das Fenster nach vorn.
 - **Fahrer müssen nichts eintippen:** Lädt ein Fahrer die App über *App herunterladen* auf eurer Frachtwerk-Seite, steckt die Server-Adresse schon in der Datei. Doppelklick → „Verbinden“ → fertig.
 - **Spieldaten automatisch:** Der Funbit Telemetry Server wird heruntergeladen und gestartet – nur beim ersten Mal „Install“ klicken.
+- **Discord-Status (Rich Presence):** Freunde sehen in Discord „Spielt Frachtwerk – Prag → München · noch 183 km“. Einmalig im Discord Developer Portal eine Anwendung anlegen und die Application ID unter Admin → *Website* eintragen. Abschaltbar im Tray-Menü.
 - **Aktualisiert sich selbst**, sobald auf dem Server eine neuere `Frachtwerk.exe` liegt.
 - **Eigene Spedition auf diesem PC:** Im Startfenster „Eigene Spedition auf diesem PC starten“ – startet die komplette Plattform lokal (optional mit Demo-Daten und Live-Simulation).
 

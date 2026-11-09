@@ -30,6 +30,8 @@ $status = New-Object System.Windows.Forms.ToolStripMenuItem('Starte …')
 $status.Enabled = $false
 $settings = New-Object System.Windows.Forms.ToolStripMenuItem('Status && Einstellungen')
 $settings.add_Click({ Send-Action 'settings' })
+$discord = New-Object System.Windows.Forms.ToolStripMenuItem('Discord-Status anzeigen')
+$discord.add_Click({ Send-Action 'discord' })
 $auto = New-Object System.Windows.Forms.ToolStripMenuItem('Mit Windows starten')
 $auto.add_Click({ Send-Action 'autostart' })
 $quit = New-Object System.Windows.Forms.ToolStripMenuItem('Beenden')
@@ -40,6 +42,7 @@ $quit.add_Click({ Send-Action 'quit' })
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 [void]$menu.Items.Add($status)
 [void]$menu.Items.Add($settings)
+[void]$menu.Items.Add($discord)
 [void]$menu.Items.Add($auto)
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 [void]$menu.Items.Add($quit)
@@ -59,6 +62,7 @@ $timer.add_Tick({
     $ni.Text = $tip
     $status.Text = [string]$s.status
     $auto.Checked = [bool]$s.autostart
+    $discord.Checked = [bool]$s.discord
     foreach ($n in @($s.notifications)) {
       if ($n) { $ni.ShowBalloonTip(6000, [string]$n.title, [string]$n.text, [System.Windows.Forms.ToolTipIcon]::Info) }
     }

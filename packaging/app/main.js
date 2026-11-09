@@ -13,6 +13,7 @@ const os = require('os');
 const http = require('http');
 const cp = require('child_process');
 const A = require('../../client/agent');
+const { createPresence } = require('./discord-rpc');
 
 const WIN = process.platform === 'win32';
 let sea = null; try { sea = require('node:sea'); if (!sea.isSea()) sea = null; } catch {}
@@ -120,7 +121,7 @@ const setupUrl = (hash = '') => `http://127.0.0.1:${PORT}/${hash}`;
 const appUrl = (p = '/app') => (cfg.server && cfg.token ? cfg.server + p : setupUrl());
 
 // ---------------- Zustand ----------------
-let trayFails = 0, agent = null, pairing = null, pairAbort = null, hostInfo = null, trayProc = null, quitting = false, updateVersion = null;
+let presence = null, presenceInfo = { company: null, siteName: 'Frachtwerk', logo: null }, jobStartedAt = null, trayFails = 0, agent = null, pairing = null, pairAbort = null, hostInfo = null, trayProc = null, quitting = false, updateVersion = null;
 const notifications = [];
 const notify = (title, text) => { notifications.push({ title, text }); if (notifications.length > 5) notifications.shift(); log('Hinweis:', title, '–', text); };
 const eur = (n) => (n || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
@@ -130,7 +131,7 @@ function trayState() {
   const status = !cfg.token ? 'Nicht verbunden – klicken zum Einrichten'
     : a.state === 'driving' ? `● ${a.text}` : a.state === 'idle' ? '● Im Spiel – kein Auftrag' : a.state === 'waiting-game' ? '○ Warte auf ETS2 / ATS'
     : a.state === 'no-telemetry' ? '⚠ Spieldaten fehlen (Funbit)' : a.state === 'offline' ? '⚠ Server nicht erreichbar' : a.state === 'auth' ? '⚠ Bitte neu verbinden' : '… startet';
-  return { tooltip: `Frachtwerk – ${status.replace(/^[●○⚠] /, '')}`, status, autostart: !!cfg.autostart, notifications: notifications.splice(0), quit: quitting };
+  return { tooltip: `Frachtwerk – ${status.replace(/^[●○⚠] /, '')}`, status, autostart: !!cfg.autostart, discord: cfg.discordPresence !== false, notifications: notifications.splice(0), quit: quitting };
 }
 
 // ---------------- Agent (Touren-Erfassung) ----------------
@@ -147,12 +148,47 @@ async function startAgent() {
     if (state === 'offline' && lastState && lastState !== 'offline') notify('Server nicht erreichbar', 'Frachtwerk versucht es automatisch weiter.');
     lastState = state;
   });
+  agent.on('job-start', () => { jobStartedAt = Date.now(); });
+  agent.on('job-finish', () => { jobStartedAt = null; });
   agent.on('job-start', (j) => notify('Tour gestartet', `${j.from} → ${j.to} · ${j.cargo} (${j.cargo_mass.toFixed(1).replace('.', ',')} t)`));
   agent.on('job-finish', ({ job, result, delivered }) => delivered
     ? notify(`Abgeliefert in ${job.to}`, `${Math.round(result.driven_km)} km · ${String(result.damage).replace('.', ',')} % Schaden · Lohn ${eur(result.payout)}`)
     : notify('Tour abgebrochen', `${job.from} → ${job.to}`));
   agent.start();
+  setupPresence();
 }
+
+// ---------------- Discord Rich Presence ----------------
+const clip = (t, n = 128) => { t = String(t || '').trim(); return t.length < 2 ? `${t}  `.slice(0, 2) : t.slice(0, n); };
+async function setupPresence() {
+  if (presence) { presence.stop(); presence = null; }
+  if (cfg.discordPresence === false || !cfg.server) return;
+  let appId = process.env.FRACHTWERK_DISCORD_APP_ID || cfg.discordAppId || null;
+  try {
+    const site = (await A.request(`${cfg.server}/api/site`)).json();
+    appId = site.discord_app_id || appId;
+    presenceInfo.siteName = site.site_name || 'Frachtwerk';
+    const logo = site.logo_url ? new URL(site.logo_url, cfg.server).toString() : `${cfg.server}/icon-512.png`;
+    presenceInfo.logo = logo.startsWith('https://') ? logo : null; // Discord lädt nur öffentliche https-Bilder
+  } catch {}
+  try { presenceInfo.company = (await agent?.ping())?.company || null; } catch {}
+  if (!/^\d{15,22}$/.test(String(appId || ''))) { log('Discord-Status: keine Application-ID hinterlegt (Admin → Website)'); return; }
+  presence = createPresence({ clientId: appId, log });
+}
+function presenceActivity() {
+  const a = agent?.status(); if (!a) return null;
+  if (a.state !== 'driving' && a.state !== 'idle') return null; // nur während das Spiel läuft
+  const game = /ats|american/i.test(a.game || '') ? 'ATS' : 'ETS2';
+  const j = a.job;
+  const act = j
+    ? { details: clip(`${j.from} → ${j.to}`), state: clip(`${j.cargo}${j.cargo_mass ? ` · ${j.cargo_mass.toFixed(1).replace('.', ',')} t` : ''} · noch ${Math.max(0, Math.round(j.lastRemaining || 0))} km`) }
+    : { details: 'Freie Fahrt', state: clip(presenceInfo.company ? `Fährt für ${presenceInfo.company}` : 'Wartet auf den nächsten Auftrag') };
+  if (j && jobStartedAt) act.timestamps = { start: jobStartedAt };
+  act.assets = { large_image: presenceInfo.logo || 'logo', large_text: clip(`${presenceInfo.siteName} · ${game}${presenceInfo.company ? ` · ${presenceInfo.company}` : ''}`) };
+  if (cfg.server?.startsWith('https://')) act.buttons = [{ label: 'Live-Map ansehen', url: `${cfg.server}/map` }, { label: `${presenceInfo.siteName} öffnen`.slice(0, 32), url: cfg.server }];
+  return act;
+}
+setInterval(() => { if (presence) presence.set(presenceActivity()); }, 5000).unref();
 
 // ---------------- Funbit automatisch ----------------
 let funbitBusy = false;
@@ -257,6 +293,7 @@ async function action(name) {
     case 'jobs': return openWindow(appUrl('/app/jobs'));
     case 'settings': return openWindow(setupUrl('#settings'));
     case 'autostart': return setAutostart(!cfg.autostart);
+    case 'discord': cfg.discordPresence = cfg.discordPresence === false; saveCfg(); return setupPresence();
     case 'funbit': return ensureFunbit(true);
     case 'logout': cfg.token = null; cfg.user = null; saveCfg(); return startAgent();
     case 'quit': return quit();
@@ -274,7 +311,7 @@ const control = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/ping') return json(200, { ok: true, version: APP_VERSION });
     if (req.method === 'GET' && url.pathname === '/state') {
       return json(200, { version: APP_VERSION, windows: WIN, configured: !!(cfg.server && cfg.token), server: cfg.server || null, user: cfg.user || null, knownServer: cfg.server || embeddedServer() || null,
-        pairing: pairing && { code: pairing.code, url: pairing.url }, agent: agent?.status() || null, autostart: !!cfg.autostart, host: hostInfo, update: updateVersion });
+        pairing: pairing && { code: pairing.code, url: pairing.url }, agent: agent?.status() || null, autostart: !!cfg.autostart, discord: cfg.discordPresence !== false, discordConnected: !!presence?.connected, host: hostInfo, update: updateVersion });
     }
     if (req.method === 'GET' && url.pathname === '/tray/state') return json(200, trayState());
     if (req.method === 'POST' && url.pathname === '/tray/action') { await action(url.searchParams.get('name')); return json(200, { ok: true }); }
@@ -306,6 +343,7 @@ function startTray() {
 
 function quit() {
   if (quitting) return; quitting = true;
+  presence?.stop();
   log('Beende Frachtwerk');
   agent?.stop();
   setTimeout(() => { try { trayProc?.kill(); } catch {} process.exit(0); }, 2500); // Tray holt sich vorher das Beenden-Signal
